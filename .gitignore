@@ -1,0 +1,10 @@
+
+.env*
+.flaskenv*
+!.env.project
+!.env.vault
+
+
+.env.local
+
+./vscode
