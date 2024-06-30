@@ -1,0 +1,23 @@
+version: "3"
+
+services: 
+  postgresql:
+    image: postgres:latest
+    environment:
+      POSTGRES_PASSWORD: password123
+      POSTGRES_USER: postgres
+      POSTGRES_DB: GestioneCentriFitness_Users
+    ports:
+      - '5858:5432'
+  pgadmin4:
+    image: dpage/pgadmin4
+    ports:
+      - '5060:5050'
+      - '96:80'
+    links:
+      - postgresql:postgresql
+    depends_on:
+      - postgresql
+    environment:
+      PGADMIN_DEFAULT_EMAIL: prova@prova.it
+      PGADMIN_DEFAULT_PASSWORD: prova
