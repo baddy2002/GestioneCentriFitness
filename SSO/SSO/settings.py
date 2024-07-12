@@ -23,7 +23,7 @@ SECRET_KEY = getenv("DJANGO_SECRET_KEY", get_random_secret_key())
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = getenv("DEBUG", 'False') == 'True'
 
-ALLOWED_HOSTS = getenv("DJANGO_ALLOWED_HOST", "127.0.0.1,localhost".split(","))
+ALLOWED_HOSTS = getenv("DJANGO_ALLOWED_HOST", "127.0.0.1,localhost").split(",")
 
 
 # Application definition
@@ -211,17 +211,18 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_EXTRA_PARAMS = {
     'fields': 'email, first_name'
 }
 
+
+
 AUTH_COOKIE = 'access'
-AUTH_COOKIE_ACCESS_MAX_AGE = 60*5
-AUTH_COOKIE_REFRESH_MAX_AGE = 60*60*24  
+AUTH_COOKIE_MAX_AGE = 60*60*24  
 AUTH_COOKIE_SECURE = getenv("AUTH_COOKIE_SECURE", 'True') == 'True'
 AUTH_COOKIE_HTTP_ONLY = True
 AUTH_COOKIE_PATH = '/'
 AUTH_COOKIE_SAMESITE = 'None' 
 
-CORS_ALLOWED_ORIGIN = getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000'.split(','))
-CORS_ALLOWED_CREDENTIALS = True
-
+CORS_ALLOWED_ORIGINS = getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000').split(',')
+CORS_ALLOW_CREDENTIALS = True
+print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
