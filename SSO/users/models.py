@@ -1,9 +1,9 @@
 from django.db import models
-from django.contrib.auth.models import BaseUserManager, PermissionsMixin, AbstractBaseUser
+from django.contrib.auth.models import BaseUserManager, PermissionsMixin, AbstractBaseUser, Group
 from django.utils.translation import gettext_lazy as _
 
 class UserAccountManager(BaseUserManager):
-    def create_user(self, email, password = None, **kwargs):
+    def create_user(self, email, password = None, group='Customer', **kwargs):
         if not email:
             raise ValueError('accounts must have an email address')
         email = self.normalize_email(email)
@@ -13,10 +13,10 @@ class UserAccountManager(BaseUserManager):
         user = self.model(email=email, **kwargs)
 
         user.set_password(password)
-        user.save(using=self._db)
+        user.save(using=self._db, group=group)
 
         return user
-    
+
     def create_superuser(self, email, password = None, **kwargs):
         user = self.create_user(
             email,
@@ -36,6 +36,9 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     data_iscrizione = models.DateField(_('data iscrizione'), auto_now_add=True)
     is_superuser = models.BooleanField(default=False)
+    groups = models.ManyToManyField(Group, related_name='user_accounts', blank=True)
+
+
     objects = UserAccountManager()
 
     USERNAME_FIELD = 'email'
@@ -49,3 +52,9 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+    
+    def save(self, group='Customer', *args, **kwargs):
+        super().save(*args, **kwargs)
+        if not self.groups.exists():
+            new_group = Group.objects.get(name=group)
+            self.groups.add(new_group)

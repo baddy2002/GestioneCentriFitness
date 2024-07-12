@@ -1,0 +1,1 @@
+insert into auth_group VALUES ('1', 'Customer'), ('2', 'Trainer'), ('3', 'Nutritionist'), ('4', 'Manager'), ('5', 'Admin')

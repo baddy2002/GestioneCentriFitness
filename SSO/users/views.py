@@ -4,16 +4,13 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 from djoser.social.views import ProviderAuthView
-
-
+import jwt
+from os import getenv
+from .models import UserAccount
 class CustomProviderAuthView(ProviderAuthView):
     def post(self, request, *args, **kwargs):
-        print("the request is: " + str(request))
 
         response = super().post(request, *args, **kwargs)
-        
-        print(" the response is  "+ str(response))
-
 
         if response.status_code == 201:
             access_token = response.data.get('access')
@@ -31,13 +28,16 @@ class CustomProviderAuthView(ProviderAuthView):
             response.set_cookie(
                 'refresh',
                 refresh_token,
-                max_age=settings.AUTH_COOKIE_MAX_AGEs,
+                max_age=settings.AUTH_COOKIE_MAX_AGE,
                 path=settings.AUTH_COOKIE_PATH,
                 secure=settings.AUTH_COOKIE_SECURE,
                 httponly=settings.AUTH_COOKIE_HTTP_ONLY,
                 samesite=settings.AUTH_COOKIE_SAMESITE
             )
-        
+        user_id = jwt.decode(access_token, getenv('DJANGO_SECRET_KEY'), algorithms=['HS256']).get('user_id')
+        user = UserAccount.objects.get(pk=user_id)
+        user.is_active = True
+        user.save()
         return response
 
 
