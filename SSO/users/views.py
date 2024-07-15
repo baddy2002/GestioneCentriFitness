@@ -7,6 +7,8 @@ from djoser.social.views import ProviderAuthView
 import jwt
 from os import getenv
 from .models import UserAccount
+from .authentication import CustomTokenObtainPairSerializer
+
 class CustomProviderAuthView(ProviderAuthView):
     def post(self, request, *args, **kwargs):
 
@@ -42,6 +44,7 @@ class CustomProviderAuthView(ProviderAuthView):
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
 

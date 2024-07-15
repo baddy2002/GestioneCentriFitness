@@ -193,6 +193,9 @@ DJOSER = {
     'SEND_ACTIVATION_EMAIL': True,
     'TOKEN_MODEL': None,
     'SOCIAL_AUTH_ALLOWED_REDIRECT_URIS': getenv('REDIRECT_URLS').split(','),
+    'SERIALIZERS': {
+        'token_obtain_pair': 'users.authentication.CustomTokenObtainPairSerializer',
+    },
 }
 
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = getenv('GOOGLE_AUTH_KEY')

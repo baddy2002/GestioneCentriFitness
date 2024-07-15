@@ -36,7 +36,7 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     data_iscrizione = models.DateField(_('data iscrizione'), auto_now_add=True)
     is_superuser = models.BooleanField(default=False)
-    groups = models.ManyToManyField(Group, related_name='user_accounts', blank=True)
+    groups = models.ManyToManyField(Group, related_name='user_accounts', blank=False)
 
 
     objects = UserAccountManager()
