@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import BaseUserManager, PermissionsMixin, AbstractBaseUser, Group
 from django.utils.translation import gettext_lazy as _
 
+
 class UserAccountManager(BaseUserManager):
     def create_user(self, email, password = None, group='Customer', **kwargs):
         if not email:
@@ -27,6 +28,7 @@ class UserAccountManager(BaseUserManager):
         user.is_superuser = True
         user.save(using=self._db)
 
+
 class UserAccount(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(max_length=255, unique=True)
     first_name = models.CharField(max_length=255)
@@ -37,7 +39,7 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
     data_iscrizione = models.DateField(_('data iscrizione'), auto_now_add=True)
     is_superuser = models.BooleanField(default=False)
     groups = models.ManyToManyField(Group, related_name='user_accounts', blank=False)
-
+    photo = models.CharField(max_length=255, blank=True)
 
     objects = UserAccountManager()
 
@@ -58,3 +60,7 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
         if not self.groups.exists():
             new_group = Group.objects.get(name=group)
             self.groups.add(new_group)
+
+
+
+

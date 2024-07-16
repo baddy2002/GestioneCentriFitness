@@ -5,6 +5,15 @@ interface User{
     email: string;
 };
 
+interface UserComplete{
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    data_iscrizione: string;
+    photo: string;
+};
+
 interface SocialAuthArgs{
     provider: string;
     state: string;
@@ -20,6 +29,21 @@ const authApiSlice = apiSlice.injectEndpoints ({
     endpoints: builder => ({
         retrieveUser: builder.query<User, void>({
             query: () => '/users/me/',
+            
+        }),
+        retrieveUserComplete: builder.query<UserComplete, void>({
+            query: () => '/complete/',
+            
+        }),
+        ModifyUserComplete: builder.mutation({
+            query: ({id, email, first_name, last_name, data_iscrizione, photo} ) => ({
+                url: '/complete/',
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: {id, email, first_name, last_name, data_iscrizione, photo}
+            }),
             
         }),
         socialAuthenticate: builder.mutation<CreateUserResponse, SocialAuthArgs> ({
@@ -86,6 +110,8 @@ const authApiSlice = apiSlice.injectEndpoints ({
 
 export const { 
     useRetrieveUserQuery,
+    useRetrieveUserCompleteQuery,
+    useModifyUserCompleteMutation,
     useSocialAuthenticateMutation,
     useLoginMutation,
     useRegisterMutation,
