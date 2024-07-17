@@ -1,6 +1,18 @@
 from django.db import models
 from django.contrib.auth.models import BaseUserManager, PermissionsMixin, AbstractBaseUser, Group
 from django.utils.translation import gettext_lazy as _
+from gdstorage.storage import GoogleDriveStorage
+
+gd_storage = GoogleDriveStorage()
+
+class Photo(models.Model):
+    filename = models.CharField(max_length=255, primary_key=True)
+    filetype = models.CharField(max_length=10, blank=True)
+    filesize = models.PositiveIntegerField(blank=True, null=True)
+    filedata = models.FileField(upload_to='imageProfile/', storage=gd_storage)
+    
+    def __str__(self):
+        return str(self.filename)
 
 
 class UserAccountManager(BaseUserManager):
@@ -39,7 +51,7 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
     data_iscrizione = models.DateField(_('data iscrizione'), auto_now_add=True)
     is_superuser = models.BooleanField(default=False)
     groups = models.ManyToManyField(Group, related_name='user_accounts', blank=False)
-    photo = models.CharField(max_length=255, blank=True)
+    photo = models.OneToOneField(Photo, on_delete=models.CASCADE, max_length=255,blank=True, null=True)
 
     objects = UserAccountManager()
 

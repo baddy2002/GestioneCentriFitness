@@ -36,13 +36,10 @@ const authApiSlice = apiSlice.injectEndpoints ({
             
         }),
         ModifyUserComplete: builder.mutation({
-            query: ({id, email, first_name, last_name, data_iscrizione, photo} ) => ({
+            query: (formData: FormData) => ({
                 url: '/complete/',
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: {id, email, first_name, last_name, data_iscrizione, photo}
+                body: formData
             }),
             
         }),

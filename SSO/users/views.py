@@ -5,14 +5,18 @@ from rest_framework import status
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 from djoser.social.views import ProviderAuthView
 import jwt
+from rest_framework.parsers import MultiPartParser, FormParser, FileUploadParser
 from django.shortcuts import get_object_or_404
 from os import getenv
-from .models import UserAccount
+from .models import UserAccount, Photo
 from .authentication import CustomTokenObtainPairSerializer
 import requests
 import json
 from django.http import JsonResponse
 from .serializers import UserAccountSerializer
+from .utils import generate_unique_filename
+import base64
+
 class CustomProviderAuthView(ProviderAuthView):
     def post(self, request, *args, **kwargs):
 
@@ -124,6 +128,7 @@ class LogoutView(APIView):
     
 
 class CompleteUserView(APIView):
+    parser_classes = [MultiPartParser, FormParser, FileUploadParser]
     def get(self, request, *args, **kwargs):
         url = 'http://127.0.0.1:8000/api/users/me/' 
         headers = {
@@ -132,27 +137,39 @@ class CompleteUserView(APIView):
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
             user = get_object_or_404(UserAccount, pk=json.loads(response.content.decode('utf-8')).get('id'))
+            photo = Photo.objects.filter(filename=user.photo).first()
+            photo_url=None
+            if(photo!=None and photo.filedata!=None):
+                photo_url = photo.filedata.storage.url(photo.filedata.name)
+                direct_url = 'https://drive.google.com/uc?'+photo_url[
+                    photo_url.find('id=')                                                       #starindex
+                    :photo_url.find('&', photo_url.find('id='))]        #end_index(la prima & dopo startIndex)
+                               
+                    
             json_mapper = {
                 'id': str(user.pk),
                 'email': str(user.email),
                 'first_name': str(user.first_name),
                 'last_name': str(user.last_name),
                 'data_iscrizione': str(user.data_iscrizione),
-                'photo': str(user.photo)
+                'photo': direct_url if direct_url is not None else None
             }
             return JsonResponse(json_mapper)
         else:
             return JsonResponse({"Error": "Impossible show the data of the user"})
         
     def put(self, request, *args, **kwargs):
+
         url = 'http://127.0.0.1:8000/api/users/me/' 
         headers = {
             'Authorization': f'Bearer {request.COOKIES.get("access")}'
         }
         response = requests.get(url, headers=headers)
+        
         if response.status_code == 200:
             user = get_object_or_404(UserAccount, pk=json.loads(response.content.decode('utf-8')).get('id'))
-            
+            photo = request.FILES.get('photo')
+
             try:
                 if 'id' not in request.data or request.data['id'] is None:
                     raise Exception("ID cannot be null")
@@ -162,13 +179,28 @@ class CompleteUserView(APIView):
                     raise Exception("cannot modify another user! ")
                 if request.data['email'] != user.email:
                     raise Exception("You cannot modify the email for the moment")
-               
+                
+
                 serializer = UserAccountSerializer(user, data=request.data, partial=True)
-                print("data: "+str(request.data))
+                
+                if photo:
+                    # Salva la foto nel modello Photo(ggogle drive)
+                    photo_instance = Photo(
+                        filename=generate_unique_filename(),
+                        filetype=photo.content_type.split('/')[-1],
+                        filesize=photo.size,
+                        filedata=photo
+                    )
+                    photo_instance.save()
+                   
+                    user.photo = photo_instance
+                    user.save()
                 if serializer.is_valid():
                     
+
                     updated_user = serializer.save()
                     json_mapper = {
+                        'id': str(updated_user.id),
                         'email': str(updated_user.email),
                         'first_name': str(updated_user.first_name),
                         'last_name': str(updated_user.last_name),
@@ -178,7 +210,7 @@ class CompleteUserView(APIView):
                 
                 return JsonResponse(json_mapper)
             except Exception as e: 
-                print(e)
+                print("Exception:", e)
                 return JsonResponse({"Error": str(e)}, status=status.HTTP_400_BAD_REQUEST)  
         else:
             return JsonResponse({"Error": "Impossible show the data of the user"}, status=response.status_code)        

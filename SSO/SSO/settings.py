@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'djoser',
     'storages',
+    'gdstorage',
     'social_django',
     'users'
 ]
@@ -129,6 +130,7 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
+GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE_CONTENTS=getenv('GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE_CONTENTS')
 if DEVELOPMENT_MODE is True:
     STATIC_URL = 'static/'
     STATIC_ROOT = BASE_DIR / 'static'
@@ -225,7 +227,6 @@ AUTH_COOKIE_SAMESITE = 'None'
 
 CORS_ALLOWED_ORIGINS = getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000').split(',')
 CORS_ALLOW_CREDENTIALS = True
-print(f"CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
@@ -246,3 +247,8 @@ EMAIL_USE_TLS = True
 DOMAIN = getenv('DOMAIN')
 SITE_NAME = 'GestioneCentriFitness-SSO'
 APPEND_SLASH=False
+
+
+GS_BUCKET_NAME = 'GestioneCentriFitness'
+
+DEFAULT_FILE_STORAGE = 'users.backends.GoogleDriveStorage'

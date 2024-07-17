@@ -14,58 +14,62 @@ export default function Page() {
     
     const config = [
       {
+        type: 'text',
         label: 'User id',
         value: user?.id,
         key: 'id',
         readOnly: true
       },
       {
+        type: 'text',
         label: 'First name',
         value: user?.first_name,
         key: 'first_name',
         readOnly: false
       },
       {
+        type: 'email',
         label: 'Email',
         value: user?.email,
         key: 'email',
         readOnly: false
       },
       {
+        type: 'text',
         label: 'Last name',
         value: user?.last_name,
         key: 'last_name',
         readOnly: false
       },
       {
+        type: 'text',
         label: 'Data iscrizione',
         value: user?.data_iscrizione,
         key: 'data_iscrizione',
         readOnly: true
       },
       {
+        type: 'text',
         label: 'Photo',
         value: user?.photo,
         key: 'photo',
         readOnly: false
       },
     ];
+    const handleSave = async (data: FormData) => {
+      try {
+           // Log each key-value pair in the FormData
+           data.forEach((value, key) => {
+            console.log(key, value);
+        });
+          await updateUser(data).unwrap();
 
-    const handleSave = async (data: { [key: string]: string }) => {
-      
-      const { id, email, first_name, last_name, data_iscrizione, photo } = data;
-      console.log( { id ,email, first_name, last_name, data_iscrizione, photo });
-      await updateUser({ id, email, first_name, last_name, data_iscrizione, photo })
-      .unwrap()
-      .then(()=> {
-        dispatch(setAuth());
-        toast.success('User updated succesfully');
-      })
-      .catch((error)=>{
-        toast.error('Error updating user: ');
-      })
-      
-    };
+          dispatch(setAuth());
+          toast.success('User updated successfully');
+      } catch (error) {
+          toast.error('Error updating user: ');
+      }
+  };
 
   if (isLoading || isFetching) {
       return (
