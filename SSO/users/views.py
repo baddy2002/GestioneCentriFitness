@@ -141,7 +141,7 @@ class CompleteUserView(APIView):
             photo_url=None
             if(photo!=None and photo.filedata!=None):
                 photo_url = photo.filedata.storage.url(photo.filedata.name)
-                direct_url = 'https://drive.google.com/uc?'+photo_url[
+                direct_url = 'https://drive.google.com/uc?export=view&'+photo_url[
                     photo_url.find('id=')                                                       #starindex
                     :photo_url.find('&', photo_url.find('id='))]        #end_index(la prima & dopo startIndex)
                                

@@ -43,10 +43,8 @@ export default function List({ config, onSave }: Props) {
         }
         onSave(formData);
     };
-    const getDirectImageUrl = (url: string) => {
-        console.log(url);
-        return url;
-    };
+
+
 
     return (
         <>
@@ -66,9 +64,9 @@ export default function List({ config, onSave }: Props) {
                                     {typeof values.photo === 'string' && values.photo !== '' && (
                                         <img
                                         
-                                            src={getDirectImageUrl(values.photo)}
+                                            src="https://drive.google.com/uc?export=view&id=1CJaUldQhiZAnplWB7WTFb3AeBk3uGj2F"
                                             alt="User profile"
-                                            className="h-16 w-16 rounded-full border"
+                                            className="h-40 w-40 rounded-full border"
                                         />
                                     )}
                                     <input
