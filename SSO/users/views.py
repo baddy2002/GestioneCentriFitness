@@ -127,6 +127,14 @@ class LogoutView(APIView):
         return response
     
 
+def get_direct_url(photo):
+    if(photo!=None and photo.filedata!=None):
+                    photo_url = photo.filedata.storage.url(photo.filedata.name)
+                    direct_url = 'https://drive.google.com/thumbnail?'+photo_url[
+                        photo_url.find('id=')                                                       #starindex
+                        :photo_url.find('&', photo_url.find('id='))]        #end_index(la prima & dopo startIndex)
+                    return direct_url
+    return None
 class CompleteUserView(APIView):
     parser_classes = [MultiPartParser, FormParser, FileUploadParser]
     def get(self, request, *args, **kwargs):
@@ -139,11 +147,7 @@ class CompleteUserView(APIView):
             user = get_object_or_404(UserAccount, pk=json.loads(response.content.decode('utf-8')).get('id'))
             photo = Photo.objects.filter(filename=user.photo).first()
             photo_url=None
-            if(photo!=None and photo.filedata!=None):
-                photo_url = photo.filedata.storage.url(photo.filedata.name)
-                direct_url = 'https://drive.google.com/thumbnail?'+photo_url[
-                    photo_url.find('id=')                                                       #starindex
-                    :photo_url.find('&', photo_url.find('id='))]        #end_index(la prima & dopo startIndex)
+            direct_url=get_direct_url(photo)
                                
                     
             json_mapper = {
@@ -159,7 +163,7 @@ class CompleteUserView(APIView):
             return JsonResponse({"Error": "Impossible show the data of the user"})
         
     def put(self, request, *args, **kwargs):
-
+        print(request.FILES)
         url = 'http://127.0.0.1:8000/api/users/me/' 
         headers = {
             'Authorization': f'Bearer {request.COOKIES.get("access")}'
@@ -205,7 +209,7 @@ class CompleteUserView(APIView):
                         'first_name': str(updated_user.first_name),
                         'last_name': str(updated_user.last_name),
                         'data_iscrizione': str(updated_user.data_iscrizione),
-                        'photo': str(updated_user.photo)
+                        'photo': str(get_direct_url(Photo.objects.filter(filename=updated_user.photo).first()))
                     }
                 
                 return JsonResponse(json_mapper)
