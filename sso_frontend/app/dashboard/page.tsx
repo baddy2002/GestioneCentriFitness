@@ -73,7 +73,7 @@ export default function Page() {
           };
           dispatch(setAuth(updateUser));
           toast.success('User updated successfully');
-          window.location.reload();
+          //window.location.reload();
       } catch (error) {
           toast.error('Error updating user: ');
       }
