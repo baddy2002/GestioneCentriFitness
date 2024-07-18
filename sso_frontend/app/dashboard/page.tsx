@@ -63,8 +63,15 @@ export default function Page() {
             console.log(key, value);
         });
           await updateUser(data).unwrap();
-
-          dispatch(setAuth());
+          const updatedUser = {
+            id: data.get('id') as string,
+            first_name: data.get('first_name') as string,
+            last_name: data.get('last_name') as string,
+            email: data.get('email') as string,
+            data_iscrizione: data.get('data_iscrizione') as string,
+            photo: data.get('photo') as string,
+          };
+          dispatch(setAuth(updateUser));
           toast.success('User updated successfully');
       } catch (error) {
           toast.error('Error updating user: ');

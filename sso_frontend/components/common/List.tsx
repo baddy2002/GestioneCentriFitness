@@ -64,7 +64,7 @@ export default function List({ config, onSave }: Props) {
                                     {typeof values.photo === 'string' && values.photo !== '' && (
                                         <img
                                         
-                                            src="https://drive.google.com/uc?export=view&id=1CJaUldQhiZAnplWB7WTFb3AeBk3uGj2F"
+                                            src={(values.photo)}
                                             alt="User profile"
                                             className="h-40 w-40 rounded-full border"
                                         />

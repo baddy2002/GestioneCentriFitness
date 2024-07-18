@@ -1,6 +1,6 @@
 'use client';
 
-import { useLoginMutation } from "@/redux/features/authApiSlice";
+import { useLoginMutation, useRetrieveUserCompleteQuery } from "@/redux/features/authApiSlice";
 import { useRouter } from "next/navigation";
 import { useState, ChangeEvent, FormEvent } from "react";
 import { toast } from "react-toastify";
@@ -12,6 +12,7 @@ export default function useLogin() {
     const router = useRouter();
     const dispatch = useAppDispatch();
     const[login, {isLoading}] = useLoginMutation();
+    const {data: user,refetch: fetchUserComplete, isFetching} = useRetrieveUserCompleteQuery();
   
     const[formData, setFormData] = useState ({
       email :'',
@@ -27,19 +28,34 @@ export default function useLogin() {
       setFormData({...formData, [name] : value});
     }
   
-    const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-  
-      login({email, password})
-        .unwrap()
-        .then(()=> {
-          dispatch(setAuth());
-          toast.success('Logged in succesfully');
+      try{
+        await login({ email, password }).unwrap();
+        
+        // Effettua la chiamata per ottenere i dettagli completi dell'utente
+        await fetchUserComplete();
+        if (user) {
+          const loggedUser = {
+              id: user.id,
+              first_name: user.first_name,
+              last_name: user.last_name,
+              email: user.email,
+              data_iscrizione: user.data_iscrizione,
+              photo: user.photo,
+          };
+          console.log(loggedUser);
+          // Imposta lo stato di autenticazione
+          dispatch(setAuth(loggedUser));
+
+          toast.success('Logged in successfully');
           router.push('/dashboard');
-        })
-        .catch(()=>{
-          toast.error('Failed to Log in');
-        })
+      } else {
+          throw new Error('User data not found');
+      }
+  } catch (error) {
+      toast.error('Failed to log in');
+  }
     }
   return { email, password, isLoading, onChange, onSubmit};
 }
