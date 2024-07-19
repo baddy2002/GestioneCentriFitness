@@ -67,6 +67,13 @@ const authApiSlice = apiSlice.injectEndpoints ({
                body: {first_name, email, password, re_password}
             }),
         }),
+        managerRegister: builder.mutation({
+            query: ({ first_name, email,p_iva, password, re_password }) => ({
+                url: '/users/manager',
+                method: 'POST',
+               body: {first_name, email,p_iva, password, re_password}
+            }),
+        }),
         verify: builder.mutation({
             query: ({token}) => ({
                 url: 'jwt/verify',
@@ -111,6 +118,7 @@ export const {
     useModifyUserCompleteMutation,
     useSocialAuthenticateMutation,
     useLoginMutation,
+    useManagerRegisterMutation,
     useRegisterMutation,
     useVerifyMutation,
     useLogoutMutation, 

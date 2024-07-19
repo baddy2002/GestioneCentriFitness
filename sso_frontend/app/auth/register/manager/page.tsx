@@ -1,10 +1,10 @@
 import Link from 'next/link'
-import { RegisterForm } from '@/components/forms'
+import { RegisterManagerForm } from '@/components/forms'
 import { Metadata } from 'next';
 import { SocialButtons } from '@/components/common';
 export const metadata = {
   title: 'FitWorld | Register',
-  description: 'FitWorld register page',
+  description: 'FitWorld register manager page',
 };
 
 export default function Page() {
@@ -23,17 +23,8 @@ export default function Page() {
     </div>
 
     <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-      <RegisterForm />
-      <p className="mt-10 text-center text-sm text-gray-500">
-            Are you a Manager?{' '}
-            <Link 
-              href="/auth/register/manager" 
-              className="font-semibold leading-6 text-indigo-600 hover:text-indigo-500"
-              >
-              Register as manager here
-            </Link>
-          </p>
-      <SocialButtons />
+      <RegisterManagerForm />
+
       <p className="mt-10 text-center text-sm text-gray-500">
             Already have an account?{' '}
             <Link 

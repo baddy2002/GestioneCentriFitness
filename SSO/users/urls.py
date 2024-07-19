@@ -1,6 +1,13 @@
 from django.urls import path, re_path
-from .views import CustomTokenObtainPairView, CustomTokenRefreshView, CustomTokenVerifyView, LogoutView, CustomProviderAuthView, CompleteUserView
-
+from .views import (
+    CustomTokenObtainPairView,
+      CustomTokenRefreshView, 
+      CustomTokenVerifyView, 
+      LogoutView, 
+      CustomProviderAuthView, 
+      CompleteUserView,
+      ManagerViewRegistration
+)
 urlpatterns = [
     re_path(
         r'^o/(?P<provider>\S+)/$',
@@ -12,4 +19,5 @@ urlpatterns = [
     path('jwt/verify', CustomTokenVerifyView.as_view()),
     path('logout/', LogoutView.as_view()),
     path('complete/', CompleteUserView.as_view()),
+    path('users/manager', ManagerViewRegistration.as_view()),
 ]

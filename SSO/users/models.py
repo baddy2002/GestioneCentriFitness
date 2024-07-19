@@ -52,6 +52,7 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
     is_superuser = models.BooleanField(default=False)
     groups = models.ManyToManyField(Group, related_name='user_accounts', blank=False)
     photo = models.OneToOneField(Photo, on_delete=models.CASCADE, max_length=255,blank=True, null=True)
+    p_iva = models.CharField(max_length=11,null=True)
 
     objects = UserAccountManager()
 

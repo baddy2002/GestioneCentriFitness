@@ -12,10 +12,12 @@ from .models import UserAccount, Photo
 from .authentication import CustomTokenObtainPairSerializer
 import requests
 import json
+from django.contrib.auth.models import Group
 from django.http import JsonResponse
 from .serializers import UserAccountSerializer
-from .utils import generate_unique_filename
+from .utils import generate_unique_filename, registerUser, validate_partita_iva
 import base64
+from rest_framework.permissions import AllowAny
 
 class CustomProviderAuthView(ProviderAuthView):
     def post(self, request, *args, **kwargs):
@@ -219,5 +221,25 @@ class CompleteUserView(APIView):
         else:
             return JsonResponse({"Error": "Impossible show the data of the user"}, status=response.status_code)        
         
+class ManagerViewRegistration(APIView):
+    permission_classes = [AllowAny]
+    def post(self, request, *args, **kwargs):
+        print("post: " + str(request.data))
+        if request.data is not None and request.data.get('p_iva') is not None:
+            p_iva = request.data.get('p_iva')
+            if not validate_partita_iva(p_iva):
+                return JsonResponse({"Error": "Impossible register the p_iva is not correct"},status=status.HTTP_400_BAD_REQUEST)
+            res =registerUser(request.data.get('email'), request.data.get('first_name'), request.data.get('password'), request.data.get('re_password'))
+            if res.status_code != 201:
+                return JsonResponse(json.loads(res.content), status=res.status_code)
+            user_data = res.json()
+            user = get_object_or_404(UserAccount, pk=user_data['id'])
 
+            user.p_iva = p_iva
+            user.save()
+            manager_group = Group.objects.get(name="Manager")
+            user.groups.add(manager_group)
+            return JsonResponse({"id":user.pk, "email": user.email, "first_name": user.first_name},status=status.HTTP_201_CREATED)
+        else:
+            return JsonResponse({"Error": "Impossible register the p_iva is not present"},status=status.HTTP_400_BAD_REQUEST)
     
