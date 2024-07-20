@@ -77,6 +77,7 @@ export default function Page() {
             email: data.get('email') as string,
             data_iscrizione: data.get('data_iscrizione') as string,
             photo: data.get('photo') as string,
+            group: data.get('group') as string,
           };
           dispatch(setAuth(updateUser));
           toast.success('User updated successfully');

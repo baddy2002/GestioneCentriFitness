@@ -93,6 +93,7 @@ export default function Navbar() {
                                     {isAuthenticated ? authLinks(false) : guestLinks(false)}
                                 </div>
                                 <div className="flex items-center">
+                                <NavLink href="/dashboard">
                                     {isAuthenticated ? (
                                       user?.photo ? (
                                       <img
@@ -119,6 +120,7 @@ export default function Navbar() {
                                       </svg>
                                   </div>
                                     )}
+                                </NavLink>
                                 </div>
                             </div>
                         </div>

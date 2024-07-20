@@ -44,7 +44,6 @@ export default function List({ config, onSave }: Props) {
         onSave(formData);
     };
 
-    console.log(values['group']);
 
     return (
         <>
@@ -87,13 +86,37 @@ export default function List({ config, onSave }: Props) {
                                             className={`text-sm font-semibold leading-6 text-gray-900 border border-gray-300 rounded px-2 ${readOnly ? 'bg-gray-200' : ''}`}
                                         />
                                         <button
-                                            onClick={() => { /* Add your handle logic here */ }}
+                                            onClick={() => { /* Link to fitnessCentersFrontend */ }}
+                                            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                                        >
+                                            My Area
+                                        </button>
+                                        <button
+                                            onClick={() => { /* Link to fitnessCentersFrontend */ }}
                                             className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
                                         >
                                             Handle centers
                                         </button>
                                     </div>
-                                ) : (
+                                ) : 
+                                (key === 'group' ? (
+                                    <div>
+                                        <input
+                                            type="text"
+                                            value={values[key]}
+                                            onChange={(e) => handleChange(key, e.target.value)}
+                                            readOnly={readOnly}
+                                            className={`text-sm font-semibold leading-6 text-gray-900 border border-gray-300 rounded px-2 ${readOnly ? 'bg-gray-200' : ''}`}
+                                        />
+                                        <button
+                                            onClick={() => { /* Link to fitnessCentersFrontend */ }}
+                                            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                                        >
+                                            My Area
+                                        </button>
+                                    </div>
+                                ) :
+                                (
                                     <input
                                         type="text"
                                         value={values[key]}
@@ -101,18 +124,26 @@ export default function List({ config, onSave }: Props) {
                                         readOnly={readOnly}
                                         className={`text-sm font-semibold leading-6 text-gray-900 border border-gray-300 rounded px-2 ${readOnly ? 'bg-gray-200' : ''}`}
                                     />
-                                )
+                                ))
                             )}
                         </div>
                     </li>
                 ))}
             </ul>
-            <button
-                onClick={handleSave}
-                className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
-            >
-                Save
-            </button>
+            <div className="flex justify-between mt-4">
+                <button
+                    onClick={() => { window.location.href = "/" }}
+                    className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
+                >
+                    GoHome
+                </button>
+                <button
+                    onClick={handleSave}
+                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                >
+                    Save
+                </button>
+            </div>
         </>
     );
 }
