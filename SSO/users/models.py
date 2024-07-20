@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import BaseUserManager, PermissionsMixin, AbstractBaseUser, Group
 from django.utils.translation import gettext_lazy as _
 from gdstorage.storage import GoogleDriveStorage
-
+import uuid
 gd_storage = GoogleDriveStorage()
 
 class Photo(models.Model):
@@ -16,7 +16,7 @@ class Photo(models.Model):
 
 
 class UserAccountManager(BaseUserManager):
-    def create_user(self, email, password = None, group='Customer', **kwargs):
+    def create_user(self, email, password = None, group='customer', **kwargs):
         if not email:
             raise ValueError('accounts must have an email address')
         email = self.normalize_email(email)
@@ -41,7 +41,9 @@ class UserAccountManager(BaseUserManager):
         user.save(using=self._db)
 
 
+
 class UserAccount(AbstractBaseUser, PermissionsMixin):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, unique=True)
     email = models.EmailField(max_length=255, unique=True)
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
@@ -52,7 +54,7 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
     is_superuser = models.BooleanField(default=False)
     groups = models.ManyToManyField(Group, related_name='user_accounts', blank=False)
     photo = models.OneToOneField(Photo, on_delete=models.CASCADE, max_length=255,blank=True, null=True)
-    p_iva = models.CharField(max_length=11,null=True)
+    p_iva = models.CharField(max_length=11,null=True, unique=True)
 
     objects = UserAccountManager()
 
@@ -68,12 +70,10 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.email
     
-    def save(self, group='Customer', *args, **kwargs):
+    def save(self, group='customer', *args, **kwargs):
         super().save(*args, **kwargs)
         if not self.groups.exists():
             new_group = Group.objects.get(name=group)
             self.groups.add(new_group)
-
-
 
 
