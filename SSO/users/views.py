@@ -158,7 +158,8 @@ class CompleteUserView(APIView):
                 'first_name': str(user.first_name),
                 'last_name': str(user.last_name),
                 'data_iscrizione': str(user.data_iscrizione),
-                'photo': direct_url if direct_url is not None else None
+                'photo': direct_url if direct_url is not None else None,
+                'group': [group.name for group in user.groups.all()]
             }
             return JsonResponse(json_mapper)
         else:
@@ -211,7 +212,8 @@ class CompleteUserView(APIView):
                         'first_name': str(updated_user.first_name),
                         'last_name': str(updated_user.last_name),
                         'data_iscrizione': str(updated_user.data_iscrizione),
-                        'photo': str(get_direct_url(Photo.objects.filter(filename=updated_user.photo).first()))
+                        'photo': str(get_direct_url(Photo.objects.filter(filename=updated_user.photo).first())),
+                        'group': [group.name for group in user.groups.all()]
                     }
                 
                 return JsonResponse(json_mapper)

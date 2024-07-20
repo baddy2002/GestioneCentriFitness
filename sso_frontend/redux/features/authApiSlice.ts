@@ -12,6 +12,7 @@ interface UserComplete{
     last_name: string;
     data_iscrizione: string;
     photo: string;
+    group: string;
 };
 
 interface SocialAuthArgs{

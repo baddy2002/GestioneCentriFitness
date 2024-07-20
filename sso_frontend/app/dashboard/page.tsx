@@ -55,6 +55,13 @@ export default function Page() {
         key: 'photo',
         readOnly: false
       },
+      {
+        type: 'text',
+        label: 'Group',
+        value: user?.group,
+        key: 'group',
+        readOnly: true
+      },
     ];
     const handleSave = async (data: FormData) => {
       try {

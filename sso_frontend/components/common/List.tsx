@@ -44,7 +44,7 @@ export default function List({ config, onSave }: Props) {
         onSave(formData);
     };
 
-
+    console.log(values['group']);
 
     return (
         <>
@@ -76,14 +76,32 @@ export default function List({ config, onSave }: Props) {
                                         className="text-sm font-semibold leading-6 text-gray-900 border border-gray-300 rounded px-2"
                                     />
                                 </div>
-                            ) : (
-                                <input
-                                    type="text"
-                                    value={values[key]}
-                                    onChange={(e) => handleChange(key, e.target.value)}
-                                    readOnly={readOnly}
-                                    className={`text-sm font-semibold leading-6 text-gray-900 border border-gray-300 rounded px-2 ${readOnly ? 'bg-gray-200' : ''}`}
-                                />
+                            ) : 
+                                (key === 'group' && values[key].toString().trim().toLowerCase() !== 'customer' ? (
+                                    <div>
+                                        <input
+                                            type="text"
+                                            value={values[key]}
+                                            onChange={(e) => handleChange(key, e.target.value)}
+                                            readOnly={readOnly}
+                                            className={`text-sm font-semibold leading-6 text-gray-900 border border-gray-300 rounded px-2 ${readOnly ? 'bg-gray-200' : ''}`}
+                                        />
+                                        <button
+                                            onClick={() => { /* Add your handle logic here */ }}
+                                            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                                        >
+                                            Handle centers
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <input
+                                        type="text"
+                                        value={values[key]}
+                                        onChange={(e) => handleChange(key, e.target.value)}
+                                        readOnly={readOnly}
+                                        className={`text-sm font-semibold leading-6 text-gray-900 border border-gray-300 rounded px-2 ${readOnly ? 'bg-gray-200' : ''}`}
+                                    />
+                                )
                             )}
                         </div>
                     </li>
