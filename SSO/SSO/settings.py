@@ -35,14 +35,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'corsheaders',
-    'rest_framework',
-    'djoser',
-    'storages',
-    'gdstorage',
-    'social_django',
-    'users'
-]
+    'corsheaders',                              #cors per next js
+    'rest_framework',                           #utilizzo rest_framework.simpleJWT
+    'djoser',                                   #autenticazione jwt
+    'storages',                                 #
+    'gdstorage',                                #google drive per lo storage
+    'social_django',                            #OAuth2 protocol(Google, Facebook, etc..)
+    'users'                                     
+]   
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -128,8 +128,6 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.0/howto/static-files/
 GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE_CONTENTS=getenv('GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE_CONTENTS')
 if DEVELOPMENT_MODE is True:
     STATIC_URL = 'static/'

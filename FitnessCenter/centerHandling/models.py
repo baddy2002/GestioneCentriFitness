@@ -1,6 +1,5 @@
 from django.db import models
 import uuid
-
 class Employee(models.Model):
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     TRAINER = 'trainer'
@@ -62,7 +61,7 @@ class Exit(models.Model):
     frequency = models.IntegerField(help_text="Frequency in months", null=True)
     center_uuid = models.CharField(max_length=36)
     employee_uuid = models.CharField(max_length=36, null=True)
-    start_date = models.DateField()
+    start_date = models.DateField('Start Date')
     expiration_date = models.DateField('Expiratoin Date', null=True)
 
     def __str__(self):
