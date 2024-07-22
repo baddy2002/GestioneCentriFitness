@@ -172,3 +172,5 @@ EMAIL_PORT = 587
 EMAIL_HOST_USER = getenv('DJANGO_EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = getenv("DJANGO_EMAIL_HOST_PASSWORD")
 EMAIL_USE_TLS = True
+
+APPEND_SLASH=False      #per non aggiungere automaticamente slash in richieste post(nei template auto gestito)

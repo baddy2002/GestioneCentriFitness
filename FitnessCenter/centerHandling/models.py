@@ -24,8 +24,9 @@ class Employee(models.Model):
     )
     hiring_date = models.DateField('Hiring Date')
     end_contract_date = models.DateField('End Contract Date', null=True)
-    attachments_uuid = models.CharField(max_length=36, null=True)
-    
+    attachments_uuid = models.CharField(max_length=36, blank=True, null=True)
+    center_uuid = models.CharField()
+    is_active = models.BooleanField(default=True, null=False)
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}"
     
@@ -41,8 +42,8 @@ class Employee(models.Model):
 
 class Exit(models.Model):
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    SALARY =  'salary',
-    TAX =  'tax',
+    SALARY =  'salary'
+    TAX =  'tax'
     SINGLE_EXPENSE = 'single'
 
 
@@ -62,8 +63,8 @@ class Exit(models.Model):
     center_uuid = models.CharField(max_length=36)
     employee_uuid = models.CharField(max_length=36, null=True)
     start_date = models.DateField('Start Date')
-    expiration_date = models.DateField('Expiratoin Date', null=True)
-
+    expiration_date = models.DateField('Expiration Date', null=True)
+    is_active = models.BooleanField(default=True, null=False)
     def __str__(self):
         return (f"Exit: Amount: {self.amount}, "
                 f"Type: {self.type}, "
@@ -79,11 +80,12 @@ class Center(models.Model):
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  
     name = models.CharField(max_length=100)
     description = models.TextField()
-    manager_id = models.PositiveIntegerField()
+    manager_id = models.CharField()
     province = models.CharField(max_length=2)
     city = models.CharField(max_length=100)
     street = models.CharField(max_length=100)
     house_number = models.PositiveIntegerField()
+    is_active = models.BooleanField(default=True, null=False)
 
     def __str__(self):
         return (f"Center: {self.name}, "
@@ -101,6 +103,8 @@ class Review(models.Model):
     user_id = models.CharField()
     center_uuid = models.CharField(max_length=36)
     exec_time = models.DateTimeField()
+    is_active = models.BooleanField(default=True, null=False)
+
 
     def __str__(self):
         return (f"Review: Text: {self.text[:50]}..., "  # Mostra solo i primi 50 caratteri del testo
