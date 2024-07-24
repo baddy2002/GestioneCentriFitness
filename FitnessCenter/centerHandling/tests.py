@@ -1,11 +1,12 @@
 
 from django.test import TestCase
 from django.urls import reverse
-from rest_framework import status
-from rest_framework.test import APIClient
+from django.conf import settings
+from rest_framework import status 
+from rest_framework.test import APIClient, APITestCase
 from .models import Employee, Exit, Center, Review
 import json
-
+import requests
 
 #Tests Structure:
 
@@ -15,17 +16,47 @@ import json
 ###
 ###
 
-class EmployeeAPITestCase(TestCase):
+
+
+class AuthenticatedAPITestCase(APITestCase):
+    client = APIClient()                        #Client a cui tutti i test faranno riferimento che terrà impostato l'header Authentication
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.authenticate()
+
+    @classmethod
+    def authenticate(cls):
+        url = f"{settings.BACKEND_SSO_SERVICE_PROTOCOL}://{settings.BACKEND_SSO_SERVICE_DOMAIN}:{settings.BACKEND_SSO_SERVICE_PORT}/api/jwt/create"
+        credentials = {
+            "email": "andreabenassi02@gmail.com",
+            "password": "albicocca"
+        }
+        response = requests.post(url, data=json.dumps(credentials), headers={"Content-Type":"application/json"})
+        
+        if response.status_code == 200:
+            tokens = response.json()
+            cls.access_token = tokens['access']
+            cls.refresh_token = tokens['refresh']
+            cls.client.credentials(HTTP_AUTHORIZATION=f"Bearer {cls.access_token}")             #ogni istanza della classe(ogni classe avrà un proprio token quindi impossibile scada)
+        else:
+            raise Exception("Authentication failed")
+
+        
+
+class EmployeeAPITestCase(AuthenticatedAPITestCase):
     def setUp(self):
-        self.client = APIClient()
         self.url = reverse('employee-views')
+        self.invalid_client = APIClient()
 
     def test_post_missing_fields(self):                                                 #assicura che non venga persistito se mancano campi
         data = {
             "first_name": "John",
             "last_name": "Doe"
         }
-        response = self.client.post(self.url, data, format='json')
+        invalid_response = self.invalid_client.post(self.url, data, format='json')
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         response_data = response.json()
         self.assertIn('DOB', response_data)
@@ -45,55 +76,24 @@ class EmployeeAPITestCase(TestCase):
             "first_name": "John",
             "last_name": "Doe",
             "DOB": "1990-01-01",
-            "salary": 50000,
-            "fiscalCode": "DOEJHN90A01H501Z",
+            "salary": -400,
+            "fiscalCode": "DOEJHN90A01H501",  # Invalid fiscal code
             "center_uuid": "6b016367-8ffd-4e5d-ad96-e16a6c4433f4",
+            "user_uuid": "e16a6c44-8ffd-1234-1234-6b016367332o",
             "type": "manager",  # Invalid type
-            "hiring_date": "2022-01-01",
+            "hiring_date": "2025-03-01",
+            "end_contract_date": "2025-02-01",
             "attachments_uuid": "123e4567-e89b-12d3-a456-426614174000"
         }
-        response = self.client.post(self.url, data, format='json')
+        invalid_response = self.invalid_client.post(self.url, data, format='json')
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         response_data = response.json()
         self.assertIn('type', response_data)
-        self.assertEqual(response_data['type'], ['"manager" is not a valid choice.'])
-
-
-
-    def test_post_invalid_fiscal_code(self):                            #assicura che non venga persistito se il fiscal_code non è corretto
-        data = {
-            "first_name": "John",
-            "last_name": "Doe",
-            "DOB": "1990-01-01",
-            "salary": 50000,
-            "center_uuid": "6b016367-8ffd-4e5d-ad96-e16a6c4433f4",
-            "fiscalCode": "DOEJHN90A01H501",  # Invalid fiscal code
-            "type": "trainer",
-            "hiring_date": "2022-01-01",
-            "attachments_uuid": "123e4567-e89b-12d3-a456-426614174000"
-        }
-        response = self.client.post(self.url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        response_data = response.json()
         self.assertIn('fiscalCode', response_data)
+        self.assertEqual(response_data['type'], ['"manager" is not a valid choice.'])
         self.assertEqual(response_data['fiscalCode'], ["Fiscal code not valid. It should be long only 16 and contain alphanumeric characters only."])
-
-
-    def test_post_invalid_salary(self):                             #assicura che non venga persistito in caso di salario sbagliato
-        data = {
-            "first_name": "John",
-            "last_name": "Doe",
-            "DOB": "1990-01-01",
-            "salary": -400,
-            "center_uuid": "6b016367-8ffd-4e5d-ad96-e16a6c4433f4",
-            "fiscalCode": "DOEJHN90A01H501Z",
-            "type": "trainer",
-            "hiring_date": "2022-01-01",
-            "attachments_uuid": "123e4567-e89b-12d3-a456-426614174000"
-        }
-        response = self.client.post(self.url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        response_data = response.json()
         self.assertIn('salary', response_data)
         self.assertEqual(response_data['salary'], ["Salary cannot be negative."])
 
@@ -110,7 +110,9 @@ class EmployeeAPITestCase(TestCase):
             "end_contract_date": "2025-02-01",
             "attachments_uuid": "123e4567-e89b-12d3-a456-426614174000"
         }
-        response = self.client.post(self.url, data, format='json')
+        invalid_response = self.invalid_client.post(self.url, data, format='json')
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         response_data = response.json()
         self.assertIn('salary', response_data)
@@ -123,13 +125,16 @@ class EmployeeAPITestCase(TestCase):
             "DOB": "1990-01-01",
             "salary": -400,
             "center_uuid": "6b016367-8ffd-4e5d-ad96-e16a6c4433f3",      #random 36^32 possibilità sia presente nel db di test
+            "user_uuid": "e16a6c44-8ffd-1234-1234-6b016367332o",
             "fiscalCode": "DOEJHN90A01H501Z",
             "type": "trainer",
             "hiring_date": "2025-03-01",
             "end_contract_date": "2025-02-01",
             "attachments_uuid": "123e4567-e89b-12d3-a456-426614174000"
         }
-        response = self.client.post(self.url, data, format='json')
+        invalid_response = self.invalid_client.post(self.url, data, format='json')
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         response_data = response.json()
         self.assertIn('center_uuid', response_data)
@@ -156,7 +161,11 @@ class EmployeeAPITestCase(TestCase):
             18
             
         }
-        self.client.post(reverse('center-views'), center_data, format='json')           #post di un center random per validare il center_uuid
+        invalid_response = self.invalid_client.post(reverse('center-views'), center_data, format='json')
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        response = AuthenticatedAPITestCase.client.post(reverse('center-views'), center_data, format='json')           #post di un center random per validare il center_uuid
+        
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         data = {
             "first_name": "John",
             "last_name": "Doe",
@@ -164,13 +173,16 @@ class EmployeeAPITestCase(TestCase):
             "salary": 50000,
             "fiscalCode": "DOEJHN90A01H501Z",
             "center_uuid":str(Center.objects.first().uuid),
+            "user_uuid": "e16a6c44-8ffd-1234-1234-6b016367332o",
             "type": "trainer",
             "hiring_date": "2025-01-01",
             "end_contract_date": "2025-02-01",
             "attachments_uuid": "123e4567-e89b-12d3-a456-426614174000",
             "is_active": True
         }
-        response = self.client.post(self.url, data, format='json')
+        invalid_response = self.invalid_client.post(self.url, data, format='json')
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Employee.objects.get(pk=response.json().get('uuid')).fiscalCode, "DOEJHN90A01H501Z")
         return response
@@ -183,13 +195,14 @@ class EmployeeAPITestCase(TestCase):
 
         # Recupero del dipendente
         fetch_url = self.url+employee_id+"incorrect"
-
-        response = self.client.get(fetch_url)
+        invalid_response = self.invalid_client.get(fetch_url)
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        response = AuthenticatedAPITestCase.client.get(fetch_url)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('error', response.json())
         self.assertEqual(response.json().get('error'), "Invalid UUID format")
 
-        response = self.client.get(self.url+'57742429-8895-4611-9463-032254433211')  #uuid rando probabilità che esista nel db 36^32
+        response = AuthenticatedAPITestCase.client.get(self.url+'57742429-8895-4611-9463-032254433211')  #uuid rando probabilità che esista nel db 36^32
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertIn('detail', response.json())
         self.assertEqual(response.json().get('detail'), "No Employee matches the given query.")
@@ -205,8 +218,9 @@ class EmployeeAPITestCase(TestCase):
 
         # Recupero del dipendente
         fetch_url = self.url+employee_id
-
-        response = self.client.get(fetch_url)
+        invalid_response = self.invalid_client.get(fetch_url)
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        response = AuthenticatedAPITestCase.client.get(fetch_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
@@ -228,7 +242,9 @@ class EmployeeAPITestCase(TestCase):
             "is_active": True
         }
         update_url=self.url+uuid
-        response = self.client.put(update_url, updated_data, format='json')
+        invalid_response = self.invalid_client.put(update_url, updated_data, format='json')
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        response = AuthenticatedAPITestCase.client.put(update_url, updated_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         response_data = response.json()
         self.assertIn('error', response_data)
@@ -251,8 +267,9 @@ class EmployeeAPITestCase(TestCase):
             "is_active": True
         }
         update_url=self.url+uuid
-
-        response = self.client.put(update_url, updated_data, format='json')
+        invalid_response = self.invalid_client.put(update_url, updated_data, format='json')
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        response = AuthenticatedAPITestCase.client.put(update_url, updated_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         fetched_data = response.json()
         self.assertEqual(fetched_data['uuid'], updated_data.get("uuid"))
@@ -272,16 +289,18 @@ class EmployeeAPITestCase(TestCase):
         response = self.test_post_valid_employee()         #crea un utente(con test case non è assicurato l'ordine dei test)
         uuid = response.json().get('uuid')
         delete_url=self.url+uuid+"incorrect"
-        response = self.client.delete(delete_url)
+        invalid_response = self.invalid_client.delete(delete_url)
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        response = AuthenticatedAPITestCase.client.delete(delete_url)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-        response = self.client.get(self.url+'57742429-8895-4611-9463-032254433211')  #uuid rando probabilità che esista nel db 36^32
+        response = AuthenticatedAPITestCase.client.get(self.url+'57742429-8895-4611-9463-032254433211')  #uuid rando probabilità che esista nel db 36^32
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertIn('detail', response.json())
         self.assertEqual(response.json().get('detail'), "No Employee matches the given query.")
 
         delete_url=self.url+uuid
-        response = self.client.delete(delete_url)
+        response = AuthenticatedAPITestCase.client.delete(delete_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         response_data = response.json()
         self.assertIn('employee', response_data)
@@ -293,10 +312,10 @@ class EmployeeAPITestCase(TestCase):
         
 #<===================================== EXIT ====================================================>
 
-class ExitAPITestCase(TestCase):
+class ExitAPITestCase(AuthenticatedAPITestCase):
     def setUp(self):
-        self.client = APIClient()
         self.url = reverse('exit-views')
+        self.invalid_client = APIClient()
 
     def test_post_missing_fields(self):                          #assicura che non venga persistito se mancano campi
         data = {
@@ -304,7 +323,8 @@ class ExitAPITestCase(TestCase):
             "type": "salary",
             "description": "salary_wrong_test"
         }
-        response = self.client.post(self.url, data, format='json')
+        
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         response_data = response.json()
         self.assertIn('center_uuid', response_data)
@@ -323,7 +343,7 @@ class ExitAPITestCase(TestCase):
             "start_date": "2024-03-11",
             "expiration_date": "2022-03-03"
         }
-        response = self.client.post(self.url, data, format='json')
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         response_data = response.json()
         self.assertIn('amount', response_data)
@@ -353,7 +373,7 @@ class ExitAPITestCase(TestCase):
                 "expiration_date": "2025-03-03",
                 "employee_uuid": str(Employee.objects.first().uuid)               #un employee esistente
             }
-        response = self.client.post(self.url, data, format='json')
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         response_data = response.json()
         self.assertIn('non_field_errors', response_data)
@@ -367,7 +387,7 @@ class ExitAPITestCase(TestCase):
             "start_date": "2024-03-11",
             "expiration_date": "2025-03-03"
         }                                                          #employee non presente(o sbagliato)
-        response = self.client.post(self.url, data, format='json')
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         response_data = response.json()
         self.assertIn('non_field_errors', response_data)
@@ -389,8 +409,9 @@ class ExitAPITestCase(TestCase):
             "expiration_date": "2025-03-03",
             "employee_uuid":  str(Employee.objects.first().uuid)
         }
-
-        response = self.client.post(self.url, data, format='json')
+        invalid_response = self.invalid_client.post(self.url, data, format='json')
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         exit_data = Exit.objects.get(pk=response.json().get('uuid'))
         self.assertEqual(exit_data.employee_uuid, data.get('employee_uuid'))
@@ -410,12 +431,12 @@ class ExitAPITestCase(TestCase):
         exit_id = response.json().get('uuid')
         fetch_url = self.url+exit_id+"incorrect"
 
-        response = self.client.get(fetch_url)
+        response = AuthenticatedAPITestCase.client.get(fetch_url)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('error', response.json())
         self.assertEqual(response.json().get('error'), "Invalid UUID format")
 
-        response = self.client.get(self.url+'57742429-8895-4611-9463-032254433211')  #uuid rando probabilità che esista nel db 36^32
+        response = AuthenticatedAPITestCase.client.get(self.url+'57742429-8895-4611-9463-032254433211')  #uuid rando probabilità che esista nel db 36^32
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertIn('detail', response.json())
         self.assertEqual(response.json().get('detail'), "No Exit matches the given query.")
@@ -426,8 +447,9 @@ class ExitAPITestCase(TestCase):
 
         exit_id = response.json().get('uuid')
         fetch_url = self.url+exit_id
-
-        response = self.client.get(fetch_url)
+        invalid_response = self.invalid_client.get(fetch_url)
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        response = AuthenticatedAPITestCase.client.get(fetch_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         response_data = response.json().get('exit')
         exit_data = Exit.objects.filter(pk=exit_id).get()
@@ -460,7 +482,7 @@ class ExitAPITestCase(TestCase):
             "employee_uuid": "8fec1694-eba2-464f-bdf1-28f269853cfe"
         }
         update_url=self.url+uuid
-        response = self.client.put(update_url, updated_data, format='json')
+        response = AuthenticatedAPITestCase.client.put(update_url, updated_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         response_data = response.json()
         self.assertIn('error', response_data)
@@ -482,8 +504,9 @@ class ExitAPITestCase(TestCase):
             "employee_uuid": str(Employee.objects.first().uuid)
         }
         update_url=self.url+uuid
-
-        response = self.client.put(update_url, updated_data, format='json')
+        invalid_response = self.invalid_client.get(update_url, updated_data, format='json')
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        response = AuthenticatedAPITestCase.client.put(update_url, updated_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         fetched_data = response.json()
         self.assertEqual(fetched_data['uuid'], updated_data.get('uuid'))
@@ -503,16 +526,18 @@ class ExitAPITestCase(TestCase):
         response = self.test_post_valid_exit()         #crea un utente(con test case non è assicurato l'ordine dei test)
         uuid = response.json().get('uuid')
         delete_url=self.url+uuid+"incorrect"
-        response = self.client.delete(delete_url)
+        invalid_response = self.invalid_client.get(delete_url)
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)       
+        response = AuthenticatedAPITestCase.client.delete(delete_url)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-        response = self.client.get(self.url+'57742429-8895-4611-9463-032254433211')  #uuid rando probabilità che esista nel db 36^32
+        response = AuthenticatedAPITestCase.client.get(self.url+'57742429-8895-4611-9463-032254433211')  #uuid rando probabilità che esista nel db 36^32
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertIn('detail', response.json())
         self.assertEqual(response.json().get('detail'), "No Exit matches the given query.")
 
         delete_url=self.url+uuid
-        response = self.client.delete(delete_url)
+        response = AuthenticatedAPITestCase.client.delete(delete_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         response_data = response.json()
         self.assertIn('exit', response_data)
@@ -524,17 +549,17 @@ class ExitAPITestCase(TestCase):
 
 #<===================================== CENTER ====================================================>
 
-class CenterAPITestCase(TestCase):
+class CenterAPITestCase(AuthenticatedAPITestCase):
     def setUp(self):
-        self.client = APIClient()
         self.url = reverse('center-views')
+        self.invalid_client = APIClient()
 
     def test_post_missing_fields(self):                                                 #assicura che non venga persistito se mancano campi
         data = {
             "description": "John",
             "province": "Doe"
         }
-        response = self.client.post(self.url, data, format='json')
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         response_data = response.json()
         self.assertIn('name', response_data)
@@ -562,7 +587,7 @@ class CenterAPITestCase(TestCase):
             "house_number": "test"
             
         }
-        response = self.client.post(self.url, data, format='json')
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         response_data = response.json()
         self.assertIn('province', response_data)
@@ -583,10 +608,12 @@ class CenterAPITestCase(TestCase):
             "street": "Via Roma",
             "house_number": 1
         }
-        response = self.client.post(self.url, data, format='json')
+        invalid_response = self.invalid_client.post(self.url, data, format='json')
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)   
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Center.objects.get(pk=response.json().get('uuid')).manager_id, "test")
-        response2 = self.client.post(self.url, data, format='json')
+        response2 = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
         self.assertEqual(response2.status_code, status.HTTP_400_BAD_REQUEST)
         response_data = response2.json()
         self.assertIn('non_field_errors', response_data)
@@ -603,12 +630,12 @@ class CenterAPITestCase(TestCase):
         # Recupero del center
         fetch_url = self.url+center_id+"incorrect"
 
-        response = self.client.get(fetch_url)
+        response = AuthenticatedAPITestCase.client.get(fetch_url)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('error', response.json())
         self.assertEqual(response.json().get('error'), "Invalid UUID format")
 
-        response = self.client.get(self.url+'57742429-8895-4611-9463-032254433211')  #uuid rando probabilità che esista nel db 36^32
+        response = AuthenticatedAPITestCase.client.get(self.url+'57742429-8895-4611-9463-032254433211')  #uuid rando probabilità che esista nel db 36^32
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertIn('detail', response.json())
         self.assertEqual(response.json().get('detail'), "No Center matches the given query.")
@@ -624,8 +651,7 @@ class CenterAPITestCase(TestCase):
 
         # Recupero del dipendente
         fetch_url = self.url+center_id
-
-        response = self.client.get(fetch_url)
+        response = self.invalid_client.get(fetch_url)               #un customer può vedere un centro 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_update_invalid_center(self):
@@ -642,7 +668,7 @@ class CenterAPITestCase(TestCase):
             "house_number": 26
         }
         update_url=self.url+uuid
-        response = self.client.put(update_url, updated_data, format='json')
+        response = AuthenticatedAPITestCase.client.put(update_url, updated_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         response_data = response.json()
         self.assertIn('error', response_data)
@@ -663,8 +689,9 @@ class CenterAPITestCase(TestCase):
             "house_number": 26
         }
         update_url=self.url+uuid
-
-        response = self.client.put(update_url, updated_data, format='json')
+        invalid_response = self.invalid_client.post(update_url, updated_data, format='json')
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED) 
+        response = AuthenticatedAPITestCase.client.put(update_url, updated_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         fetched_data = response.json()
         self.assertEqual(fetched_data['uuid'], updated_data.get("uuid"))
@@ -682,16 +709,18 @@ class CenterAPITestCase(TestCase):
         response = self.test_post_valid_center_and_not_replicate()         #crea un utente(con test case non è assicurato l'ordine dei test)
         uuid = response.json().get('uuid')
         delete_url=self.url+uuid+"incorrect"
-        response = self.client.delete(delete_url)
+        invalid_response = self.invalid_client.delete(delete_url)
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)         
+        response = AuthenticatedAPITestCase.client.delete(delete_url)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-        response = self.client.get(self.url+'57742429-8895-4611-9463-032254433211')  #uuid rando probabilità che esista nel db 36^32
+        response = AuthenticatedAPITestCase.client.get(self.url+'57742429-8895-4611-9463-032254433211')  #uuid rando probabilità che esista nel db 36^32
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertIn('detail', response.json())
         self.assertEqual(response.json().get('detail'), "No Center matches the given query.")
 
         delete_url=self.url+uuid
-        response = self.client.delete(delete_url)
+        response = AuthenticatedAPITestCase.client.delete(delete_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         response_data = response.json()
         self.assertIn('center', response_data)

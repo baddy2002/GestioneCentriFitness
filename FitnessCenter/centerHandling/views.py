@@ -4,35 +4,18 @@ from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from django.core.exceptions import FieldError
 from .utils import DateUtils
-
+from .services import EmployeeService
 from .models import ( Employee, Exit, Center, Review)
 from .serializers import (EmployeeSerializer, ExitSerializer, CenterSerializer)
 from django.db import IntegrityError, DatabaseError, OperationalError
 from django.core.exceptions import ValidationError
 import uuid
-#<=========================================  Employee  ==========================================================>
-class EmployeeView(APIView):
-    def post_persist_employee(self, employee):
-        exit_data = {
-            'uuid': uuid.uuid4(),
-            'type': 'salary',
-            'amount': employee.salary,
-            'description': f'salary per month of employee {employee.get_full_name()}',
-            'frequency': 1,
-            'center_uuid': employee.center_uuid,
-            'employee_uuid': employee.uuid,
-            'start_date': employee.hiring_date,
-            'expiration_date': employee.end_contract_date,
-            'is_active': True
-        }
-        exit_serializer = ExitSerializer(data=exit_data)
-        if exit_serializer.is_valid():
-            exit_serializer.save()
-        else:
-            # Handle serializer errors if needed
-            print(exit_serializer.errors)        
 
-    
+from .tokenService import jwt_base_authetication, jwt_manager_authetication, jwt_nutritionist_authetication, jwt_trainer_authetication
+#<=========================================  Employee  ==========================================================>
+class EmployeeView(APIView, EmployeeService):
+         
+    @jwt_manager_authetication
     def post(self, request):
         try:
             data = json.loads(request.body)
@@ -46,51 +29,7 @@ class EmployeeView(APIView):
             return JsonResponse(serializer.data, status=201)
         return JsonResponse(serializer.errors, status=400)
 
-    def get_search(self, query_params):
-        employees = Employee.objects.all()
-
-        order_by = query_params.get('orderBy', '-hiring_date')
-        if query_params.get('obj.uuid') is not None:
-            employees=employees.filter(uuid=query_params.get('obj.uuid'))
-        if query_params.get('like.first_name') is not None:
-            employees=employees.filter(first_name__icontains=query_params.get('like.first_name'))
-        if query_params.get('like.last_name') is not None:
-            employees=employees.filter(last_name__icontains=query_params.get('like.last_name'))
-        if query_params.get('from.DOB') is not None:
-            employees=employees.filter(DOB__gte=DateUtils.parse_string_to_date(query_params.get('from.DOB')))
-        if query_params.get('to.DOB') is not None:
-            employees=employees.filter(DOB__lte=DateUtils.parse_string_to_date(query_params.get('to.DOB')))
-        if query_params.get('obj.DOB') is not None:
-            employees=employees.filter(DOB=DateUtils.parse_string_to_date(query_params.get('obj.DOB')))
-        if query_params.get('obj.salary') is not None:
-            employees=employees.filter(float=float(query_params.get('obj.salary')))
-        if query_params.get('like.fiscalCode') is not None:
-            employees=employees.filter(fiscalCode__icontains=query_params.get('like.fiscalCode'))
-        if query_params.get('obj.type') is not None:
-            employees=employees.filter(type=query_params.get('obj.type'))
-        if query_params.get('from.hiring_date') is not None:
-            employees=employees.filter(hiring_date__gte=DateUtils.parse_string_to_date(query_params.get('from.hiring_date')))
-        if query_params.get('to.hiring_date') is not None:
-            employees=employees.filter(hiring_date__lte=DateUtils.parse_string_to_date(query_params.get('to.hiring_date')))
-        if query_params.get('obj.hiring_date') is not None:
-            employees=employees.filter(hiring_date=DateUtils.parse_string_to_date(query_params.get('obj.hiring_date')))
-        if query_params.get('from.end_contract_date') is not None:
-            employees=employees.filter(end_contract_date__gte=DateUtils.parse_string_to_date(query_params.get('from.end_contract_date')))
-        if query_params.get('to.end_contract_date') is not None:
-            employees=employees.filter(end_contract_date__lte=DateUtils.parse_string_to_date(query_params.get('to.end_contract_date')))
-        if query_params.get('obj.end_contract_date') is not None:
-            employees=employees.filter(end_contract_date=DateUtils.parse_string_to_date(query_params.get('obj.end_contract_date')))
-        if query_params.get('obj.center_uuid') is not None:
-            employees=employees.filter(center_uuid=query_params.get('obj.center_uuid'))
-        if query_params.get('obj.is_active') is not None and query_params.get('obj.is_active').strip().lower() == 'false':
-            employees=employees.filter(is_active=False)
-        else:
-            employees=employees.filter(is_active=True)
-
-        employees = employees.all().order_by(order_by)
-        
-        return employees  
-
+    @jwt_manager_authetication
     def get(self, request, uuid=None):
         
         if uuid:
@@ -126,7 +65,7 @@ class EmployeeView(APIView):
             except FieldError:
                 return JsonResponse({"error": "Invalid orderBy parameter"}, status=400)
 
-
+    @jwt_manager_authetication
     def put(self, request, uuid):
         try:
             employee = get_object_or_404(Employee, uuid=uuid)
@@ -144,6 +83,7 @@ class EmployeeView(APIView):
         else:
             return JsonResponse({"error": "uuid must be the same."}, status=400)
 
+    @jwt_manager_authetication
     def delete(self, request, uuid):
         try:
             employee = get_object_or_404(Employee, uuid=uuid)
@@ -178,6 +118,7 @@ def show_employee_exits(request, uuid):
 #<=========================================  Exit  ==========================================================>
 
 class ExitView(APIView):
+    @jwt_manager_authetication
     def post(self, request):
         try:
             data = json.loads(request.body)
@@ -231,7 +172,7 @@ class ExitView(APIView):
         return exits
 
 
-
+    @jwt_manager_authetication
     def get(self, request, uuid=None):
         
         if uuid:
@@ -266,7 +207,7 @@ class ExitView(APIView):
             except FieldError:
                 return JsonResponse({"error": "Invalid orderBy parameter"}, status=400)
 
-
+    @jwt_manager_authetication
     def put(self, request, uuid):
         try:
             exit_istance = get_object_or_404(Exit, uuid=uuid)
@@ -284,6 +225,7 @@ class ExitView(APIView):
         else:
             return JsonResponse({"error": "uuid must be the same."}, status=400)
 
+    @jwt_manager_authetication
     def delete(self, request, uuid):
         try:
             exit_istance = get_object_or_404(Exit, uuid=uuid)
@@ -340,7 +282,7 @@ class CenterView(APIView):
         
         return centers  
 
-
+    @jwt_manager_authetication
     def post(self, request):
         try:
             data = json.loads(request.body)
@@ -352,6 +294,7 @@ class CenterView(APIView):
             center = serializer.save()
             return JsonResponse(serializer.data, status=201)
         return JsonResponse(serializer.errors, status=400)
+
 
     def get(self, request, uuid=None):
         
@@ -387,7 +330,7 @@ class CenterView(APIView):
             except FieldError:
                 return JsonResponse({"error": "Invalid orderBy parameter"}, status=400)
 
-
+    @jwt_manager_authetication
     def put(self, request, uuid):
         try:
             center = get_object_or_404(Center, uuid=uuid)
@@ -405,6 +348,7 @@ class CenterView(APIView):
         else:
             return JsonResponse({"error": "uuid must be the same."}, status=400)
 
+    @jwt_manager_authetication
     def delete(self, request, uuid):
         try:
             center = get_object_or_404(Center, uuid=uuid)

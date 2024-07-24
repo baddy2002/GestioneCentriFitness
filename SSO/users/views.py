@@ -34,6 +34,7 @@ class CustomProviderAuthView(ProviderAuthView):
                 max_age=settings.AUTH_COOKIE_MAX_AGE,
                 path=settings.AUTH_COOKIE_PATH,
                 secure=settings.AUTH_COOKIE_SECURE,
+                domain=settings.BACKEND_SERVICE_DOMAIN,
                 httponly=settings.AUTH_COOKIE_HTTP_ONLY,
                 samesite=settings.AUTH_COOKIE_SAMESITE
             )
@@ -43,6 +44,7 @@ class CustomProviderAuthView(ProviderAuthView):
                 max_age=settings.AUTH_COOKIE_MAX_AGE,
                 path=settings.AUTH_COOKIE_PATH,
                 secure=settings.AUTH_COOKIE_SECURE,
+                domain=settings.BACKEND_SERVICE_DOMAIN,
                 httponly=settings.AUTH_COOKIE_HTTP_ONLY,
                 samesite=settings.AUTH_COOKIE_SAMESITE
             )
@@ -68,6 +70,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 max_age=settings.AUTH_COOKIE_MAX_AGE,
                 path=settings.AUTH_COOKIE_PATH,
                 secure=settings.AUTH_COOKIE_SECURE,
+                domain=settings.BACKEND_SERVICE_DOMAIN,
                 httponly=settings.AUTH_COOKIE_HTTP_ONLY,
                 samesite=settings.AUTH_COOKIE_SAMESITE
             )
@@ -77,6 +80,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 max_age=settings.AUTH_COOKIE_MAX_AGE,
                 path=settings.AUTH_COOKIE_PATH,
                 secure=settings.AUTH_COOKIE_SECURE,
+                domain=settings.BACKEND_SERVICE_DOMAIN,
                 httponly=settings.AUTH_COOKIE_HTTP_ONLY,
                 samesite=settings.AUTH_COOKIE_SAMESITE
             )
@@ -102,6 +106,7 @@ class CustomTokenRefreshView(TokenRefreshView):
                 max_age=settings.AUTH_COOKIE_MAX_AGE,
                 path=settings.AUTH_COOKIE_PATH,
                 secure=settings.AUTH_COOKIE_SECURE,
+                domain=settings.BACKEND_SERVICE_DOMAIN,
                 httponly=settings.AUTH_COOKIE_HTTP_ONLY,
                 samesite=settings.AUTH_COOKIE_SAMESITE
 
@@ -140,7 +145,7 @@ def get_direct_url(photo):
 class CompleteUserView(APIView):
     parser_classes = [MultiPartParser, FormParser, FileUploadParser]
     def get(self, request, *args, **kwargs):
-        url = 'http://127.0.0.1:8000/api/users/me/' 
+        url = f'{settings.BACKEND_SERVICE_PROTOCOL}://{settings.BACKEND_SERVICE_DOMAIN}:{settings.BACKEND_SERVICE_PORT}/api/users/me/' 
         headers = {
             'Authorization': f'Bearer {request.COOKIES.get("access")}'
         }
@@ -167,7 +172,7 @@ class CompleteUserView(APIView):
         
     def put(self, request, *args, **kwargs):
         print(request.FILES)
-        url = 'http://127.0.0.1:8000/api/users/me/' 
+        url = f'{settings.BACKEND_SERVICE_PROTOCOL}://{settings.BACKEND_SERVICE_DOMAIN}:{settings.BACKEND_SERVICE_PORT}/api/users/me/' 
         headers = {
             'Authorization': f'Bearer {request.COOKIES.get("access")}'
         }

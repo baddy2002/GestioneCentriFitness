@@ -25,8 +25,9 @@ class Employee(models.Model):
     hiring_date = models.DateField('Hiring Date')
     end_contract_date = models.DateField('End Contract Date', null=True)
     attachments_uuid = models.CharField(max_length=36, blank=True, null=True)
+    user_uuid = models.CharField()
     center_uuid = models.CharField()
-    is_active = models.BooleanField(default=True, null=False)
+    is_active = models.BooleanField(default=False, null=False)
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}"
     

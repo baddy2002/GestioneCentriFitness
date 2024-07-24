@@ -8,7 +8,7 @@ import requests
 class EmployeeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employee
-        fields = ['uuid', 'first_name', 'last_name', 'DOB', 'salary', 'fiscalCode', 'type', 'center_uuid', 'hiring_date', 'end_contract_date', 'attachments_uuid', 'is_active']
+        fields = ['uuid', 'first_name', 'last_name', 'DOB', 'salary', 'user_uuid','fiscalCode', 'type', 'center_uuid', 'hiring_date', 'end_contract_date', 'attachments_uuid', 'is_active']
 
     def validate_end_contract_date(self, value):
         if value is not None:
@@ -49,7 +49,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
         
         if end_contract_date is not None and hiring_date is not None:
             if end_contract_date < hiring_date:
-                raise serializers.ValidationError("Expiration date cannot be earlier than hiring date.")
+                raise serializers.ValidationError("End contract date cannot be earlier than hiring date.")
         
         return data
 
