@@ -305,13 +305,14 @@ class InvitoView(APIView):
         except FieldError:
             return JsonResponse({"error": "Invalid orderBy parameter"}, status=400)
 
-    def put(self, request, uuid):
+    def put(self, request, uuid=None):
         try:
             invitation = get_object_or_404(Invito, uuid=uuid)
             email=get_principal(request)
             if invitation.email != email:          
                 return JsonResponse({"error": "Forbidden: the user that modified the invitation is not the recipient"}, status=403)
             data = json.loads(request.body)
+            data['employee_uuid'] = invitation.employee_uuid
         except ValidationError:
                 return JsonResponse({"error": "Invalid UUID format"}, status=400)
         except json.JSONDecodeError:

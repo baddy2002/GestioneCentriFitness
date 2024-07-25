@@ -22,4 +22,5 @@ urlpatterns = [
     path('complete/', CompleteUserView.as_view()),
     path('users/manager', ManagerViewRegistration.as_view()),
     path('complete/invitations', InvitoView.as_view()),
+    path('complete/invitations/<str:uuid>', InvitoView.as_view()),
 ]

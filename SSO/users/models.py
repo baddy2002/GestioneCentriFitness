@@ -3,6 +3,8 @@ from django.contrib.auth.models import BaseUserManager, PermissionsMixin, Abstra
 from django.utils.translation import gettext_lazy as _
 from gdstorage.storage import GoogleDriveStorage
 import uuid
+from .producer import KafkaProducerService
+
 gd_storage = GoogleDriveStorage()
 
 class Photo(models.Model):
@@ -82,7 +84,20 @@ class Invito(models.Model):
     email = models.EmailField(max_length=255)
     employee_uuid = models.CharField(max_length=36)
     exec_time = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=10, choices=[('pending', 'pending'), ('accepted', 'accepted'), ('denied', 'denied'), ('error', 'error')])
+    status = models.CharField(max_length=10, choices=[('pending', 'pending'), ('accepted', 'accepted'), ('rejected', 'rejected'), ('error', 'error')])
     error_description = models.TextField(blank=True, null=True)
     def __str__(self):
         return f'Invito {self.uuid} for email {self.email}'
+    
+    def save(self, *args, **kwargs):
+        if self.pk is not None:                                     # L'invito esiste già
+            old_invito = Invito.objects.get(pk=self.pk)
+            if old_invito.status != self.status:                    # Lo stato è cambiato
+                producer = KafkaProducerService(bootstrap_servers='localhost:9092')
+                data = {
+                    'employee_uuid': self.employee_uuid,
+                    'status': self.status
+                }
+                print(data)
+                producer.send_status_update('invitation-status', data)
+        super(Invito, self).save(*args, **kwargs)
