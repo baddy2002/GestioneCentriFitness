@@ -17,7 +17,8 @@ class Employee(models.Model):
     last_name = models.CharField(max_length=50)
     DOB = models.DateField('Date of Birth')
     salary = models.DecimalField(max_digits=10, decimal_places=2)
-    fiscalCode = models.CharField(max_length=16, unique=True)
+    fiscalCode = models.CharField(max_length=16)
+    email = models.CharField(max_length=255)
     type = models.CharField(
         max_length=50,
         choices=EMPLOYEE_TYPE_CHOICES,

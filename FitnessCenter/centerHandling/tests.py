@@ -75,11 +75,13 @@ class EmployeeAPITestCase(AuthenticatedAPITestCase):
         self.assertIn('fiscalCode', response_data)
         self.assertIn('type', response_data)
         self.assertIn('hiring_date', response_data)
+        self.assertIn('email', response_data)
         self.assertEqual(response_data['DOB'], ['This field is required.'])
         self.assertEqual(response_data['salary'], ['This field is required.'])
         self.assertEqual(response_data['fiscalCode'], ['This field is required.'])
         self.assertEqual(response_data['type'], ['This field is required.'])
         self.assertEqual(response_data['hiring_date'], ['This field is required.'])
+        self.assertEqual(response_data['email'], ['This field is required.'])
 
 
     def test_post_invalid_type(self):                                       #assicura che non venga persistito se il tipo non è corretto
@@ -91,6 +93,7 @@ class EmployeeAPITestCase(AuthenticatedAPITestCase):
             "fiscalCode": "DOEJHN90A01H501",  # Invalid fiscal code
             "center_uuid": "6b016367-8ffd-4e5d-ad96-e16a6c4433f4",
             "user_uuid": "e16a6c44-8ffd-1234-1234-6b016367332o",
+            "email": "prova@prova.it",
             "type": "manager",  # Invalid type
             "hiring_date": "2025-03-01",
             "end_contract_date": "2025-02-01",
@@ -116,6 +119,7 @@ class EmployeeAPITestCase(AuthenticatedAPITestCase):
             "salary": -400,
             "center_uuid": "6b016367-8ffd-4e5d-ad96-e16a6c4433f4",
             "fiscalCode": "DOEJHN90A01H501Z",
+            "email": "prova@prova.it",
             "type": "trainer",
             "hiring_date": "2025-03-01",
             "end_contract_date": "2025-02-01",
@@ -138,6 +142,7 @@ class EmployeeAPITestCase(AuthenticatedAPITestCase):
             "center_uuid": "6b016367-8ffd-4e5d-ad96-e16a6c4433f3",      #random 36^32 possibilità sia presente nel db di test
             "user_uuid": "e16a6c44-8ffd-1234-1234-6b016367332o",
             "fiscalCode": "DOEJHN90A01H501Z",
+            "email": "prova@prova.it",
             "type": "trainer",
             "hiring_date": "2025-03-01",
             "end_contract_date": "2025-02-01",
@@ -185,6 +190,7 @@ class EmployeeAPITestCase(AuthenticatedAPITestCase):
             "fiscalCode": "DOEJHN90A01H501Z",
             "center_uuid":str(Center.objects.first().uuid),
             "user_uuid": "e16a6c44-8ffd-1234-1234-6b016367332o",
+            "email": "andreabenassi02@gmail.com",
             "type": "trainer",
             "hiring_date": "2025-01-01",
             "end_contract_date": "2025-02-01",
@@ -247,6 +253,7 @@ class EmployeeAPITestCase(AuthenticatedAPITestCase):
             "salary": 50000,
             "fiscalCode": "DOEJHN90A01H501Z",
             "center_uuid": "6b016367-8ffd-4e5d-ad96-e16a6c4433f4",
+            "email": "prova@prova.it",
             "type": "trainer",
             "hiring_date": "2022-01-01",
             "attachments_uuid": "123e4567-e89b-12d3-a456-426614174000",
@@ -272,6 +279,7 @@ class EmployeeAPITestCase(AuthenticatedAPITestCase):
             "DOB": "1990-01-01",
             "salary": 50000,
             "fiscalCode": "DOEJHN90A01H501Z",
+            "email": "prova@prova.it",
             "type": "trainer",
             "hiring_date": "2022-01-01",
             "attachments_uuid": "123e4567-e89b-12d3-a456-426614174000",

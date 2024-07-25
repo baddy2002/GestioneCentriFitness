@@ -1,13 +1,20 @@
 from .models import Employee
 from .serializers import ExitSerializer
 import uuid
-
+from .producer import KafkaProducerService
 from .utils import DateUtils
 
-class EmployeeService():
-    def send_invitation(self, employee_uuid):
+class EmployeeService:
+    def __init__(self):
+        self.kafka_producer = KafkaProducerService(bootstrap_servers='localhost:9092')
+
+    def send_invitation(self, employee_email, employee_uuid):
         #TODO: Logic of invitation on an employee
-        return employee_uuid
+        data = {
+            'email': employee_email,
+            'employee_uuid': str(employee_uuid)
+        }
+        self.kafka_producer.send_employee_invitation('employee-invitation', data)
 
     def post_persist_employee(self, employee):
         exit_data = {
@@ -26,9 +33,8 @@ class EmployeeService():
         if exit_serializer.is_valid():
             exit_serializer.save()
         else:
-            # Handle serializer errors if needed
             print(exit_serializer.errors)  
-        #self.send_invitation(employee.uuid)            TODO: handle invation
+        self.send_invitation(employee.email ,employee.uuid)            #TODO: handle invation
 
 
     def get_search(self, query_params):

@@ -8,7 +8,7 @@ import requests
 class EmployeeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employee
-        fields = ['uuid', 'first_name', 'last_name', 'DOB', 'salary','fiscalCode', 'type', 'center_uuid', 'hiring_date', 'end_contract_date', 'attachments_uuid', 'is_active']
+        fields = ['uuid', 'first_name', 'email', 'last_name', 'DOB', 'salary','fiscalCode', 'type', 'center_uuid', 'hiring_date', 'end_contract_date', 'attachments_uuid', 'is_active']
 
     def validate_end_contract_date(self, value):
         if value is not None:

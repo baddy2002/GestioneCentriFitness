@@ -77,3 +77,12 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
             self.groups.add(new_group)
 
 
+class Invito(models.Model):
+    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    email = models.EmailField(max_length=255)
+    employee_uuid = models.CharField(max_length=36)
+    exec_time = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=10, choices=[('pending', 'pending'), ('accepted', 'accepted'), ('denied', 'denied'), ('error', 'error')])
+    error_description = models.TextField(blank=True, null=True)
+    def __str__(self):
+        return f'Invito {self.uuid} for email {self.email}'

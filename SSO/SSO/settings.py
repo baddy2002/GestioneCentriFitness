@@ -257,3 +257,7 @@ APPEND_SLASH=False
 GS_BUCKET_NAME = 'GestioneCentriFitness'
 
 DEFAULT_FILE_STORAGE = 'users.backends.GoogleDriveStorage'
+
+
+KAFKA_BOOTSTRAP_SERVERS = ['localhost:9092']
+KAFKA_TOPIC = 'employee-invitation'

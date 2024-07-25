@@ -15,8 +15,12 @@ import requests
 
 from .tokenService import get_principal, jwt_base_authetication, jwt_manager_authetication, jwt_nutritionist_authetication, jwt_trainer_authetication
 #<=========================================  Employee  ==========================================================>
-class EmployeeView(APIView, EmployeeService):
-         
+class EmployeeView(APIView):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.employee_service = EmployeeService() 
+   
     @jwt_manager_authetication
     def post(self, request):
         try:
@@ -27,7 +31,7 @@ class EmployeeView(APIView, EmployeeService):
         serializer = EmployeeSerializer(data=data)
         if serializer.is_valid():
             employee = serializer.save()
-            self.post_persist_employee(employee=employee)
+            self.employee_service.post_persist_employee(employee=employee)
             return JsonResponse(serializer.data, status=201)
         return JsonResponse(serializer.errors, status=400)
 
@@ -44,7 +48,7 @@ class EmployeeView(APIView, EmployeeService):
         else:
 
             try:
-                employees = self.get_search(request.GET)
+                employees = self.employee_service.get_search(request.GET)
                 list_size = employees.count()
                 start_row = int(request.GET.get('startRow', 0))
                 page_size = int(request.GET.get('pageSize', 10))

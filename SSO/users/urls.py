@@ -6,7 +6,8 @@ from .views import (
       LogoutView, 
       CustomProviderAuthView, 
       CompleteUserView,
-      ManagerViewRegistration
+      ManagerViewRegistration,
+      InvitoView
 )
 urlpatterns = [
     re_path(
@@ -20,4 +21,5 @@ urlpatterns = [
     path('logout/', LogoutView.as_view()),
     path('complete/', CompleteUserView.as_view()),
     path('users/manager', ManagerViewRegistration.as_view()),
+    path('complete/invitations', InvitoView.as_view()),
 ]

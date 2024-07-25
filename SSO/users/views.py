@@ -4,18 +4,19 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 from djoser.social.views import ProviderAuthView
+from django.core.exceptions import FieldError, ValidationError
 import jwt
 from rest_framework.parsers import MultiPartParser, FormParser, FileUploadParser
 from django.shortcuts import get_object_or_404
 from os import getenv
-from .models import UserAccount, Photo
+from .models import UserAccount, Photo, Invito
 from .authentication import CustomTokenObtainPairSerializer
 import requests
 import json
 from django.contrib.auth.models import Group
 from django.http import JsonResponse
-from .serializers import UserAccountSerializer
-from .utils import generate_unique_filename, registerUser, validate_partita_iva
+from .serializers import InvitationSerializer, UserAccountSerializer
+from .utils import DateUtils, generate_unique_filename, get_principal, registerUser, validate_partita_iva
 import base64
 from rest_framework.permissions import AllowAny
 
@@ -250,3 +251,76 @@ class ManagerViewRegistration(APIView):
         else:
             return JsonResponse({"Error": "Impossible register the p_iva is not present"},status=status.HTTP_400_BAD_REQUEST)
     
+class InvitoView(APIView):
+    def get_search(self, request):
+        invitations = Invito.objects.all()
+        query_params = request.GET
+        order_by = query_params.get('orderBy', '-exec_time')
+        if query_params.get('obj.uuid') is not None:
+            invitations=invitations.filter(uuid=query_params.get('obj.uuid'))
+        if query_params.get('obj.status') is not None:
+            invitations=invitations.filter(status=query_params.get('obj.status'))
+        if query_params.get('obj.email') is not None:
+            invitations=invitations.filter(email=query_params.get('obj.email'))
+        else:
+            invitations=invitations.filter(email=get_principal(request))
+        if query_params.get('obj.employee_uuid') is not None:
+            invitations=invitations.filter(employee_uuid=query_params.get('obj.employee_uuid'))
+        if query_params.get('obj.center_uuid') is not None:
+            invitations=invitations.filter(center_uuid=query_params.get('obj.center_uuid'))
+        if query_params.get('from.exec_time') is not None:
+            invitations=invitations.filter(start_date__gte=DateUtils.parse_string_to_datetime(query_params.get('from.exec_time')))
+        if query_params.get('to.exec_time') is not None:
+            invitations=invitations.filter(start_date__lte=DateUtils.parse_string_to_datetime(query_params.get('to.exec_time')))
+        if query_params.get('obj.exec_time') is not None:
+            invitations=invitations.filter(start_date=DateUtils.parse_string_to_datetime(query_params.get('obj.exec_time')))
+
+        invitations = invitations.all().order_by(order_by)
+
+        return invitations 
+
+    def get(self, request):
+        try:
+
+            invitations = self.get_search(request)
+            list_size = invitations.count()
+            start_row = int(request.GET.get('startRow', 0))
+            page_size = int(request.GET.get('pageSize', 10))
+            if(page_size < 0):
+                raise ValueError("the pageSize cannot be negative.")
+            if(start_row < 0):
+                raise ValueError("the startRow cannot be negative.")
+            if(start_row > list_size):          #non restituisco nulla ma informo con l'header dei risultati
+                return JsonResponse({"reviews": None}, headers={"listSize": str(list_size)})
+
+            
+            paginated_invitations = invitations[start_row:start_row + page_size]
+
+            # Serializza i dati
+            invitations_list = InvitationSerializer(paginated_invitations, many=True).data
+            
+            return JsonResponse({"invitations": invitations_list}, headers={"listSize": str(list_size)})
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        except FieldError:
+            return JsonResponse({"error": "Invalid orderBy parameter"}, status=400)
+
+    def put(self, request, uuid):
+        try:
+            invitation = get_object_or_404(Invito, uuid=uuid)
+            email=get_principal(request)
+            if invitation.email != email:          
+                return JsonResponse({"error": "Forbidden: the user that modified the invitation is not the recipient"}, status=403)
+            data = json.loads(request.body)
+        except ValidationError:
+                return JsonResponse({"error": "Invalid UUID format"}, status=400)
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+        if uuid == str(data.get('uuid')):
+            serializer = InvitationSerializer(invitation, data=data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return JsonResponse(serializer.data, status=200)
+            return JsonResponse(serializer.errors, status=400)
+        else:
+            return JsonResponse({"error": "uuid must be the same."}, status=400)
