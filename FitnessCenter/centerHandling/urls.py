@@ -4,7 +4,7 @@ from django.urls import path, include
 from .views import ( 
     EmployeeView, show_employee_exits,
     ExitView,
-    CenterView, show_reviews, add_review
+    CenterView, ReviewView
 )
 urlpatterns = [
     #----------------------employee-----------------------------------
@@ -17,6 +17,6 @@ urlpatterns = [
     #----------------------Center--------------------------------------
     path('centers/', CenterView.as_view(), name='center-views'),
     path('centers/<str:uuid>', CenterView.as_view()),
-    path('centers/reviews/<str:center_uuid>', show_reviews, name='showReviewListOfCenter'),
-    path('centers/reviews/<str:center_uuid>', add_review, name='addReviewOfCenter'),
+    path('centers/reviews/<str:center_uuid>', ReviewView.as_view(), name='review-views'),
+    path('centers/reviews/<str:center_uuid>/<str:uuid>', ReviewView.as_view(), name='add-review'),
 ]

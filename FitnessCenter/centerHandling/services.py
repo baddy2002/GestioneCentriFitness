@@ -5,7 +5,7 @@ import uuid
 from .utils import DateUtils
 
 class EmployeeService():
-    def send_invatation(self, employee_uuid):
+    def send_invitation(self, employee_uuid):
         #TODO: Logic of invitation on an employee
         return employee_uuid
 

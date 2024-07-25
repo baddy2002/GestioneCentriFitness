@@ -8,7 +8,7 @@ import requests
 class EmployeeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employee
-        fields = ['uuid', 'first_name', 'last_name', 'DOB', 'salary', 'user_uuid','fiscalCode', 'type', 'center_uuid', 'hiring_date', 'end_contract_date', 'attachments_uuid', 'is_active']
+        fields = ['uuid', 'first_name', 'last_name', 'DOB', 'salary','fiscalCode', 'type', 'center_uuid', 'hiring_date', 'end_contract_date', 'attachments_uuid', 'is_active']
 
     def validate_end_contract_date(self, value):
         if value is not None:
@@ -114,7 +114,6 @@ class ExitSerializer(serializers.ModelSerializer):
         return data
     
 
-
 class CenterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Center
@@ -129,14 +128,48 @@ class CenterSerializer(serializers.ModelSerializer):
             'house_number',
             'is_active',
         ]
-
+        read_only_fields = ['uuid']
 
     def validate(self, data):
+        if self.instance is not None:
+            uuid = self.instance.uuid
         province = data.get('province')
         city = data.get('city')
         street = data.get('street')
         house_number = data.get('house_number')
         center = Center.objects.filter(province=province, city=city, street=street, house_number=house_number).first()
+        
         if center is not None:
-            raise serializers.ValidationError("There is another center in this location ! ")
+            if self.instance is None:                                       #è una post 
+                raise serializers.ValidationError("There is another center in this location ! ")
+            else:    
+                if center.uuid != uuid:                                        #è una put in cui modifico il luogo e provo a metterlo in uno in cui un negozio esiste già
+                    raise serializers.ValidationError("There is another center in this location ! ")
+        return data
+    
+
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = [
+            'uuid',
+            'text',
+            'score',
+            'user_id',
+            'center_uuid',
+            'exec_time',
+            'is_active',
+        ]
+
+
+    def validate_center_uuid(self, value):
+        center = Center.objects.filter(pk=value).first()
+
+        if center is None:
+            raise serializers.ValidationError("Center with this center_uuid does not exist.")
+        
+        return value
+
+    def validate(self, data):
+        #TODO: implementare filtri per contenuti dannosi
         return data

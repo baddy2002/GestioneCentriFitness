@@ -1,3 +1,4 @@
+from os import getenv
 from django.http import JsonResponse
 import json
 from django.shortcuts import get_object_or_404
@@ -6,12 +7,13 @@ from django.core.exceptions import FieldError
 from .utils import DateUtils
 from .services import EmployeeService
 from .models import ( Employee, Exit, Center, Review)
-from .serializers import (EmployeeSerializer, ExitSerializer, CenterSerializer)
+from .serializers import (EmployeeSerializer, ExitSerializer, CenterSerializer, ReviewSerializer)
 from django.db import IntegrityError, DatabaseError, OperationalError
 from django.core.exceptions import ValidationError
-import uuid
+import jwt
+import requests
 
-from .tokenService import jwt_base_authetication, jwt_manager_authetication, jwt_nutritionist_authetication, jwt_trainer_authetication
+from .tokenService import get_principal, jwt_base_authetication, jwt_manager_authetication, jwt_nutritionist_authetication, jwt_trainer_authetication
 #<=========================================  Employee  ==========================================================>
 class EmployeeView(APIView, EmployeeService):
          
@@ -273,7 +275,6 @@ class CenterView(APIView):
         if query_params.get('obj.house_number') is not None:
             centers=centers.filter(uuid=int(query_params.get('obj.house_number')))
         if query_params.get('obj.is_active') is not None and query_params.get('obj.is_active').strip().lower() == 'false':
-            print("is_active: "+query_params.get('obj.is_active'))
             centers=centers.filter(is_active=False)
         else:
             centers=centers.filter(is_active=True)
@@ -286,9 +287,9 @@ class CenterView(APIView):
     def post(self, request):
         try:
             data = json.loads(request.body)
+            data['manager_id'] = get_principal(request)
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
-        
         serializer = CenterSerializer(data=data)
         if serializer.is_valid():
             center = serializer.save()
@@ -335,11 +336,16 @@ class CenterView(APIView):
         try:
             center = get_object_or_404(Center, uuid=uuid)
             data = json.loads(request.body)
+
         except ValidationError:
                 return JsonResponse({"error": "Invalid UUID format"}, status=400)
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
         if uuid == str(data.get('uuid')):
+            user_uuid = get_principal(request)
+            if center.manager_id != user_uuid:
+                return JsonResponse({"error": "Forbidden: the manager that are trying to update the center is not the true manager"}, status=403)
+            data['manager_id'] = user_uuid  
             serializer = CenterSerializer(center, data=data, partial=True)
             if serializer.is_valid():
                 serializer.save()
@@ -352,9 +358,14 @@ class CenterView(APIView):
     def delete(self, request, uuid):
         try:
             center = get_object_or_404(Center, uuid=uuid)
+            user_uuid = get_principal(request)
+            if center.manager_id != user_uuid:
+                return JsonResponse({"error": "Forbidden: the manager that are trying to delete the center is not the true manager"}, status=403)
             center.is_active=False
             center.save() 
+            
             center_data = CenterSerializer(center).data
+            
             return JsonResponse({"center": center_data}, status=200)
         except ValidationError:
                 return JsonResponse({"error": "Invalid UUID format"}, status=400)
@@ -370,10 +381,94 @@ class CenterView(APIView):
 
 
 #<======================================= Review ================================================>
+class ReviewView(APIView):
+    def get_search(self, query_params):
+        reviews = Review.objects.all()
 
-def show_reviews(request, center_uuid):
-    return JsonResponse({"message": "List of reviews"})
+        order_by = query_params.get('orderBy', '-exec_time')
+        if query_params.get('obj.uuid') is not None:
+            reviews=reviews.filter(uuid=query_params.get('obj.uuid'))
+        if query_params.get('like.text') is not None:
+            reviews=reviews.filter(text__icontains=query_params.get('like.text'))
+        if query_params.get('obj.score') is not None:
+            reviews=reviews.filter(score=int(query_params.get('obj.score')))
+        if query_params.get('obj.user_id') is not None:
+            reviews=reviews.filter(user_id=query_params.get('obj.user_id'))
+        if query_params.get('obj.center_uuid') is not None:
+            reviews=reviews.filter(center_uuid=query_params.get('obj.center_uuid'))
+        if query_params.get('from.exec_time') is not None:
+            reviews=reviews.filter(start_date__gte=DateUtils.parse_string_to_datetime(query_params.get('from.exec_time')))
+        if query_params.get('to.exec_time') is not None:
+            reviews=reviews.filter(start_date__lte=DateUtils.parse_string_to_datetime(query_params.get('to.exec_time')))
+        if query_params.get('obj.exec_time') is not None:
+            reviews=reviews.filter(start_date=DateUtils.parse_string_to_datetime(query_params.get('obj.exec_time')))
+        if query_params.get('obj.is_active') is not None and query_params.get('obj.is_active').strip().lower() == 'false':
+            reviews=reviews.filter(is_active=False)
+        else:
+            reviews=reviews.filter(is_active=True)
 
-def add_review(request, center_uuid):
-    return JsonResponse({"message": "Persist of a review"})
+        reviews = reviews.all().order_by(order_by)
+        
+        return reviews 
 
+    def get(self, request, center_uuid):
+        try:
+            reviews = self.get_search(request.GET)
+            list_size = reviews.count()
+            start_row = int(request.GET.get('startRow', 0))
+            page_size = int(request.GET.get('pageSize', 10))
+            if(page_size < 0):
+                raise ValueError("the pageSize cannot be negative.")
+            if(start_row < 0):
+                raise ValueError("the startRow cannot be negative.")
+            if(start_row > list_size):          #non restituisco nulla ma informo con l'header dei risultati
+                return JsonResponse({"reviews": None}, headers={"listSize": str(list_size)})
+
+            
+            paginated_reviews = reviews[start_row:start_row + page_size]
+
+            # Serializza i dati
+            reviews_list = ReviewSerializer(paginated_reviews, many=True).data
+            
+            return JsonResponse({"reviews": reviews_list}, headers={"listSize": str(list_size)})
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        except FieldError:
+            return JsonResponse({"error": "Invalid orderBy parameter"}, status=400)
+
+    @jwt_base_authetication
+    def post(self, request, center_uuid):
+        try:
+            data = json.loads(request.body)
+            data['user_id'] = get_principal(request)
+            data['center_uuid'] = center_uuid
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+        
+        serializer = ReviewSerializer(data=data)
+        if serializer.is_valid():
+            # TODO: implementare controllo per capire se l'utente ha prenotato
+            review = serializer.save()
+            return JsonResponse(serializer.data, status=201)
+        return JsonResponse(serializer.errors, status=400)
+
+    @jwt_base_authetication
+    def put(self, request, center_uuid, uuid):
+        try:
+            review = get_object_or_404(Review, uuid=uuid)
+            user_uuid=get_principal(request)
+            if review.user_id != user_uuid:          
+                return JsonResponse({"error": "Forbidden: the user that modified the review is not the author"}, status=403)
+            data = json.loads(request.body)
+        except ValidationError:
+                return JsonResponse({"error": "Invalid UUID format"}, status=400)
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+        if uuid == str(data.get('uuid')):
+            serializer = ReviewSerializer(review, data=data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return JsonResponse(serializer.data, status=200)
+            return JsonResponse(serializer.errors, status=400)
+        else:
+            return JsonResponse({"error": "uuid must be the same."}, status=400)

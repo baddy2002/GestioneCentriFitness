@@ -1,4 +1,5 @@
 
+from os import getenv
 from django.test import TestCase
 from django.urls import reverse
 from django.conf import settings
@@ -7,7 +8,7 @@ from rest_framework.test import APIClient, APITestCase
 from .models import Employee, Exit, Center, Review
 import json
 import requests
-
+import jwt
 #Tests Structure:
 
 ###TestCase gestisce automaticamente la creazione e la pulizia del database per ogni test
@@ -20,6 +21,7 @@ import requests
 
 class AuthenticatedAPITestCase(APITestCase):
     client = APIClient()                        #Client a cui tutti i test faranno riferimento che terrà impostato l'header Authentication
+    
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -41,8 +43,17 @@ class AuthenticatedAPITestCase(APITestCase):
             cls.client.credentials(HTTP_AUTHORIZATION=f"Bearer {cls.access_token}")             #ogni istanza della classe(ogni classe avrà un proprio token quindi impossibile scada)
         else:
             raise Exception("Authentication failed")
-
         
+    @classmethod
+    def get_client_token(cls):
+        return cls.client._credentials['HTTP_AUTHORIZATION'].split()[1]
+
+    @classmethod
+    def get_client_user(cls):
+        token = cls.get_client_token()
+        payload = jwt.decode(token.encode('UTF-8'), getenv('DJANGO_SSO_SECRET_KEY'), algorithms=["HS256"])
+        user_uuid = payload.get('user_id')
+        return user_uuid
 
 class EmployeeAPITestCase(AuthenticatedAPITestCase):
     def setUp(self):
@@ -563,12 +574,10 @@ class CenterAPITestCase(AuthenticatedAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         response_data = response.json()
         self.assertIn('name', response_data)
-        self.assertIn('manager_id', response_data)
         self.assertIn('city', response_data)
         self.assertIn('street', response_data)
         self.assertIn('house_number', response_data)
         self.assertEqual(response_data['name'], ['This field is required.'])
-        self.assertEqual(response_data['manager_id'], ['This field is required.'])
         self.assertEqual(response_data['city'], ['This field is required.'])
         self.assertEqual(response_data['street'], ['This field is required.'])
         self.assertEqual(response_data['house_number'], ['This field is required.'])
@@ -612,7 +621,7 @@ class CenterAPITestCase(AuthenticatedAPITestCase):
         self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)   
         response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Center.objects.get(pk=response.json().get('uuid')).manager_id, "test")
+        self.assertEqual(Center.objects.get(pk=response.json().get('uuid')).manager_id, AuthenticatedAPITestCase.get_client_user())
         response2 = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
         self.assertEqual(response2.status_code, status.HTTP_400_BAD_REQUEST)
         response_data = response2.json()
@@ -691,13 +700,25 @@ class CenterAPITestCase(AuthenticatedAPITestCase):
         update_url=self.url+uuid
         invalid_response = self.invalid_client.post(update_url, updated_data, format='json')
         self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED) 
+        center = Center.objects.filter(uuid=uuid).first()
+        center.manager_id = '6b016367-8ffd-4e5d-ad96-e16a6c4433f3'              #imposto manager_id diverso per controllare visibilità
+        center.save() 
+
+        response = AuthenticatedAPITestCase.client.put(update_url, updated_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)                       #manager non valido
+        
+        center.manager_id =AuthenticatedAPITestCase.get_client_user()
+        center.save() 
+
+  
+                                                                                    #salvo come manager_id il client per far andare la richiestA
         response = AuthenticatedAPITestCase.client.put(update_url, updated_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         fetched_data = response.json()
         self.assertEqual(fetched_data['uuid'], updated_data.get("uuid"))
         self.assertEqual(fetched_data['description'], updated_data.get("description"))
         self.assertEqual(fetched_data['name'], updated_data.get("name"))
-        self.assertEqual(fetched_data['manager_id'], updated_data.get("manager_id"))
+        self.assertEqual(fetched_data['manager_id'], AuthenticatedAPITestCase.get_client_user())
         self.assertEqual(fetched_data['province'], updated_data.get("province"))
         self.assertEqual(fetched_data['city'], updated_data.get("city"))
         self.assertEqual(fetched_data['street'], updated_data.get("street"))
@@ -730,3 +751,113 @@ class CenterAPITestCase(AuthenticatedAPITestCase):
         center = Center.objects.get(uuid=uuid)
         self.assertFalse(center.is_active)
 
+
+class ReviewAPITestCase(AuthenticatedAPITestCase):
+    def setUp(self):
+        review_test = EmployeeAPITestCase()
+        review_test.setUp()
+        review_test.test_post_valid_employee()                          #creo un center
+        self.url = reverse('review-views', args=(str(Center.objects.first().uuid), ))
+        self.invalid_client = APIClient()
+
+    def test_post_missing_fields(self):                                                 #assicura che non venga persistito se mancano campi
+        data = {
+            "text": "John",
+            "user_id": "fda"
+        }
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response_data = response.json()
+        self.assertIn('score', response_data)
+        self.assertEqual(response_data['score'], ['This field is required.'])
+
+
+    def test_post_invalid_score(self):         #assicura che non venga persistito se la provincia non è nel formato corretto
+                                                            # e se il numero civico non è un intero positivo
+        data = {
+            "text": "John",
+            "score": 0,
+            "exec_time": "2024-07-24T12:00:00",
+            "is_active": True
+        }
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response_data = response.json()
+        self.assertIn('score', response_data)
+        self.assertEqual(response_data['score'], ['"0" is not a valid choice.'])
+
+
+    def test_post_valid_review(self):                 #assicura che venga persistito in caso di dati corretti
+        
+        data = {
+            "text": "test text for review",
+            "score": 1,
+            "center_uuid": str(Center.objects.first().uuid),
+            "exec_time": "2024-07-24T12:00:00",
+            "is_active": True
+        }
+        
+        invalid_response = self.invalid_client.post(self.url, data, format='json')
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)   
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Review.objects.get(pk=response.json().get('uuid')).text, "test text for review")
+        return response
+    
+
+    def test_update_invalid_review(self):
+        response = self.test_post_valid_review()         #crea un utente(con test case non è assicurato l'ordine dei test)
+        uuid =response.json().get("uuid")
+        updated_data = {
+            "uuid": uuid+"incorrect",
+            "text": "John",
+            "score": 4,
+            "user_id": Review.objects.filter(uuid=uuid).first().user_id,
+            "center_uuid": str(Center.objects.first().uuid),
+            "exec_time": "2024-07-24T12:00:00",
+            "is_active": True
+        }
+        update_url=self.url+"/"+uuid
+        response = AuthenticatedAPITestCase.client.put(update_url, updated_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response_data = response.json()
+        self.assertIn('error', response_data)
+        self.assertEqual(response_data['error'], "uuid must be the same.")
+
+
+    def test_update_valid_review(self):
+        response = self.test_post_valid_review()         #crea una review(con test case non è assicurato l'ordine dei test)
+        uuid =response.json().get("uuid")
+        updated_data = {
+            "uuid": uuid,
+            "text": "John",
+            "score": 1,
+            "user_id": Review.objects.filter(uuid=uuid).first().user_id,
+            "center_uuid": str(Center.objects.first().uuid),
+            "exec_time": "2024-07-24T12:00:00",
+            "is_active": True
+        }
+        update_url=self.url+"/"+uuid
+        invalid_response = self.invalid_client.post(update_url, updated_data, format='json')
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED) 
+
+        review = Review.objects.filter(uuid=uuid).first()
+        review.user_id = '57742429-8895-4611-9463-032254433211'
+        review.save()
+
+        response = AuthenticatedAPITestCase.client.put(update_url, updated_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN) 
+        self.assertEqual(response.json()['error'], "Forbidden: the user that modified the review is not the author")
+
+        review = Review.objects.filter(uuid=uuid).first()
+        review.user_id = AuthenticatedAPITestCase.get_client_user()
+        review.save()
+        response = AuthenticatedAPITestCase.client.put(update_url, updated_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        fetched_data = response.json()
+        self.assertEqual(fetched_data['uuid'], updated_data.get("uuid"))
+        self.assertEqual(fetched_data['text'], updated_data.get("text"))
+        self.assertEqual(fetched_data['score'], updated_data.get("score"))
+        self.assertEqual(fetched_data['user_id'], updated_data.get("user_id"))
+        self.assertEqual(fetched_data['center_uuid'], updated_data.get("center_uuid"))
+        self.assertEqual(fetched_data['is_active'], updated_data.get("is_active"))

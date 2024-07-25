@@ -4,7 +4,17 @@ import requests
 from functools import wraps
 import jwt
 
+def jwt_base_authetication(view):
+    @wraps(view)
+    def wrapper(self, request, *args, **kwargs):
+        token = None if request.META.get('Authorization') is None else request.META.get('Authorization') #getattr(request, 'access_token', None)
+        if not token:
+            return JsonResponse({"error": "Unauthorized, authentication data not provided"}, status=401)
+        return view(self, request, *args, **kwargs)
+    return wrapper
 
+
+'''
 def jwt_base_authetication(view):
     @wraps(view)
     def wrapper(self, request, *args, **kwargs):
@@ -28,21 +38,43 @@ def jwt_base_authetication(view):
             if response.status_code != 200:
                 return JsonResponse({"error":"Unauthorized, authentication data not correct"}, status=401)
             token=response.json().get('access')
-        
+        else: 
+            return view(self, request, *args, **kwargs)
         request.access = token
+        view_url = request.build_absolute_uri(request.path)
 
+        # Invoca la view utilizzando il metodo e i parametri specificati
+        headers = {'Authorization': f'Bearer {token}'}
+        internal_response = None
+
+        if request.method == 'GET':
+            internal_response = requests.get(view_url, headers=headers, params=request.GET)
+        elif request.method == 'POST':
+            internal_response = requests.post(view_url, headers=headers, json=request.data)
+        elif request.method == 'PUT':
+            internal_response = requests.put(view_url, headers=headers, json=request.data)
+        elif request.method == 'DELETE':
+            internal_response = requests.delete(view_url, headers=headers, json=None)
+        else:
+            return JsonResponse({"error": "Unsupported method"}, status=405)
+        
+        if internal_response.status_code == 200:
+            return view(self, request, *args, **kwargs)  # Restituisce la risposta della view originale
+        else:
+            return JsonResponse({"error": "Authorization failed"}, status=403)
+            
         return view(self, request, *args, **kwargs)
     return wrapper
-
+'''
 
 def jwt_trainer_authetication(view):
     @wraps(view)
     def wrapper(self, request, *args, **kwargs):
         @jwt_base_authetication
         def wrapped_view(self, request, *args, **kwargs):
-            access = getattr(request, 'access', None)
+            access = None if request.META.get('Authorization') is None else request.META.get('Authorization') #getattr(request, 'access_token', None)
             try:
-                payload = jwt.decode(access, getenv('DJANGO_SSO_SECRET_KEY'), algorithms=["HS256"])
+                payload = jwt.decode(access.encode('utf-8'), getenv('DJANGO_SSO_SECRET_KEY'), algorithms=["HS256"])
                 if 'groups' not in payload or all(group not in ['trainer', 'mixed', 'admin'] for group in payload['groups']):
                     return JsonResponse({"error": "Forbidden, insufficient permissions"}, status=403)
             except jwt.ExpiredSignatureError:
@@ -61,9 +93,9 @@ def jwt_nutritionist_authetication(view):
     def wrapper(self, request, *args, **kwargs):
         @jwt_base_authetication
         def wrapped_view(self, request, *args, **kwargs):
-            access = getattr(request, 'access', None)
+            access = None if request.META.get('Authorization') is None else request.META.get('Authorization') #getattr(request, 'access_token', None)
             try:
-                payload = jwt.decode(access, getenv('DJANGO_SSO_SECRET_KEY'), algorithms=["HS256"])
+                payload = jwt.decode(access.encode('utf-8'), getenv('DJANGO_SSO_SECRET_KEY'), algorithms=["HS256"])
                 if 'groups' not in payload or all(group not in ['nutritionist', 'mixed', 'admin'] for group in payload['groups']): 
                     return JsonResponse({"error": "Forbidden, insufficient permissions"}, status=403)
             except jwt.ExpiredSignatureError:
@@ -80,9 +112,10 @@ def jwt_manager_authetication(view):
     def wrapper(self, request, *args, **kwargs):
         @jwt_base_authetication
         def wrapped_view(self, request, *args, **kwargs):
-            access = getattr(request, 'access', None)
+            access = None if request.META.get('Authorization') is None else request.META.get('Authorization') #getattr(request, 'access_token', None)
             try:
-                payload = jwt.decode(access, getenv('DJANGO_SSO_SECRET_KEY'), algorithms=["HS256"])
+                
+                payload = jwt.decode(access.encode('utf-8'), getenv('DJANGO_SSO_SECRET_KEY'), algorithms=["HS256"])
                 if 'groups' not in payload or all(group not in ['manager', 'admin'] for group in payload['groups']):
                     return JsonResponse({"error": "Forbidden, insufficient permissions"}, status=403)
             except jwt.ExpiredSignatureError:
@@ -93,3 +126,15 @@ def jwt_manager_authetication(view):
         
         return wrapped_view(self, request, *args, **kwargs)
     return wrapper
+
+
+def get_token(request):
+    if request.META.get("Authorization") is not None:
+        token = request.META.get("Authorization")
+    return token
+
+def get_principal(request):
+    token = get_token(request)
+    payload = jwt.decode(token.encode('utf-8'), getenv('DJANGO_SSO_SECRET_KEY'), algorithms=["HS256"])
+    user_uuid = payload.get('user_id')
+    return user_uuid

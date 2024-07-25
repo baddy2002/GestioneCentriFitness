@@ -25,9 +25,10 @@ class Employee(models.Model):
     hiring_date = models.DateField('Hiring Date')
     end_contract_date = models.DateField('End Contract Date', null=True)
     attachments_uuid = models.CharField(max_length=36, blank=True, null=True)
-    user_uuid = models.CharField()
     center_uuid = models.CharField()
     is_active = models.BooleanField(default=False, null=False)
+
+
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}"
     
@@ -103,7 +104,7 @@ class Review(models.Model):
     score = models.IntegerField(choices=[(i, i) for i in range(1, 6)])  # Score da 1 a 5
     user_id = models.CharField()
     center_uuid = models.CharField(max_length=36)
-    exec_time = models.DateTimeField()
+    exec_time = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True, null=False)
 
 
@@ -113,3 +114,8 @@ class Review(models.Model):
                 f"User ID: {self.user_id}, "
                 f"Center UUID: {self.center_uuid}, "
                 f"Execution Time: {self.exec_time}")
+    
+    def from_map(self, map):
+        self.uuid = map.get('uuid')
+        self.text = map.get('text')
+        self.score = None if map.get('score') is None else int(map.get('score'))
