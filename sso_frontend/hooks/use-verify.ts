@@ -4,40 +4,19 @@ import { useEffect } from 'react';
 import { useVerifyMutation, useRetrieveUserCompleteQuery } from '@/redux/features/authApiSlice';
 import { setAuth, finishInitialLoad } from '@/redux/features/authSlices';
 import { useAppDispatch } from '@/redux/hooks';
-
+import { toast } from 'react-toastify';
 export default function useVerify() {
     const dispatch = useAppDispatch();
     const { data: user, refetch: fetchUserComplete } = useRetrieveUserCompleteQuery();
     const [verify] = useVerifyMutation();
-
+    
     useEffect(() => {
-        // Funzione per recuperare il token
-        const getToken = () => {
-            // Prova a ottenere il token dall'intestazione Authorization
-            const authHeader = window.localStorage.getItem('authToken'); // Supponiamo che tu stia memorizzando in localStorage
-            if (authHeader) {
-                return authHeader;
-            }
-
-            // Prova a ottenere il token dal cookie
-            const cookies = document.cookie.split('; ').reduce<Record<string, string>>((acc, cookie) => {
-                const [name, value] = cookie.split('=');
-                acc[name] = value;
-                return acc;
-            }, {});
-            
-            return cookies['access'] || null;
-        };
-
-        // Recupera il token
-        const token = getToken();
-
+        
         // Chiama la funzione verify con il token recuperato
-        verify(token)
+        verify()
             .unwrap()
             .then(async () => {
                 await fetchUserComplete();
-
                 if (user) {
                     const loggedUser = {
                         id: user.id,
@@ -47,10 +26,18 @@ export default function useVerify() {
                         data_iscrizione: user.data_iscrizione,
                         photo: user.photo,
                     };
+                    
                     dispatch(setAuth(loggedUser));
                 } else {
                     dispatch(setAuth(null));
                 }
+
+            })
+            .catch((error) =>{
+                console.error('Errore:', error); // Log dell'errore completo
+        // Estrarre informazioni specifiche dell'errore, se disponibili
+        const errorMessage = error?.data?.message || error.message || "Errore sconosciuto";
+        toast.error(`Errore: ${errorMessage}`);
             })
             .finally(() => {
                 dispatch(finishInitialLoad());

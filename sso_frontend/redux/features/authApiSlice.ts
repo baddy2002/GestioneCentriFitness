@@ -75,11 +75,10 @@ const authApiSlice = apiSlice.injectEndpoints ({
                body: {first_name, email,p_iva, password, re_password}
             }),
         }),
-        verify: builder.mutation({
-            query: ({token}) => ({
+        verify: builder.mutation<void, void>({
+            query: () => ({
                 url: 'jwt/verify',
                 method: 'POST',
-                body: {token},
             }),
         }),
         logout: builder.mutation({
