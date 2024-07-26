@@ -172,7 +172,6 @@ class CompleteUserView(APIView):
             return JsonResponse({"Error": "Impossible show the data of the user"})
         
     def put(self, request, *args, **kwargs):
-        print(request.FILES)
         url = f'{settings.BACKEND_SERVICE_PROTOCOL}://{settings.BACKEND_SERVICE_DOMAIN}:{settings.BACKEND_SERVICE_PORT}/api/users/me/' 
         headers = {
             'Authorization': f'Bearer {request.COOKIES.get("access")}'
@@ -196,20 +195,20 @@ class CompleteUserView(APIView):
 
                 serializer = UserAccountSerializer(user, data=request.data, partial=True)
                 
-                if photo:
-                    # Salva la foto nel modello Photo(ggogle drive)
-                    photo_instance = Photo(
-                        filename=generate_unique_filename(),
-                        filetype=photo.content_type.split('/')[-1],
-                        filesize=photo.size,
-                        filedata=photo
-                    )
-                    photo_instance.save()
-                   
-                    user.photo = photo_instance
-                    user.save()
+
                 if serializer.is_valid():
+                    if photo:
+                        # Salva la foto nel modello Photo(ggogle drive)
+                        photo_instance = Photo(
+                            filename=generate_unique_filename(),
+                            filetype=photo.content_type.split('/')[-1],
+                            filesize=photo.size,
+                            filedata=photo
+                        )
+                        photo_instance.save()
                     
+                        user.photo = photo_instance
+                        user.save()                    
 
                     updated_user = serializer.save()
                     json_mapper = {
@@ -221,8 +220,11 @@ class CompleteUserView(APIView):
                         'photo': str(get_direct_url(Photo.objects.filter(filename=updated_user.photo).first())),
                         'group': [group.name for group in user.groups.all()]
                     }
+
+                    return JsonResponse(json_mapper)
                 
-                return JsonResponse(json_mapper)
+                else:
+                    return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
             except Exception as e: 
                 print("Exception:", e)
                 return JsonResponse({"Error": str(e)}, status=status.HTTP_400_BAD_REQUEST)  

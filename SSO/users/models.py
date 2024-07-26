@@ -48,7 +48,7 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, unique=True)
     email = models.EmailField(max_length=255, unique=True)
     first_name = models.CharField(max_length=255)
-    last_name = models.CharField(max_length=255)
+    last_name = models.CharField(max_length=255, null=True)
     
     is_active = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
@@ -86,6 +86,7 @@ class Invito(models.Model):
     exec_time = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=10, choices=[('pending', 'pending'), ('accepted', 'accepted'), ('rejected', 'rejected'), ('error', 'error')])
     error_description = models.TextField(blank=True, null=True)
+    description = models.TextField(null=True)
     def __str__(self):
         return f'Invito {self.uuid} for email {self.email}'
     
