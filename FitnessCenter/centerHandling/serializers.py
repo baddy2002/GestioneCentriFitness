@@ -140,10 +140,10 @@ class CenterSerializer(serializers.ModelSerializer):
         center = Center.objects.filter(province=province, city=city, street=street, house_number=house_number).first()
         
         if center is not None:
-            if self.instance is None:                                       #è una post 
+            if self.instance is None and center.is_active==True:                                       #è una post 
                 raise serializers.ValidationError("There is another center in this location ! ")
             else:    
-                if center.uuid != uuid:                                        #è una put in cui modifico il luogo e provo a metterlo in uno in cui un negozio esiste già
+                if self.instance is not None and center.uuid != uuid and center.is_active==True:                                        #è una put in cui modifico il luogo e provo a metterlo in uno in cui un negozio esiste già
                     raise serializers.ValidationError("There is another center in this location ! ")
         return data
     

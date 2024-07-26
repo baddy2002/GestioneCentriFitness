@@ -5,5 +5,5 @@ class Command(BaseCommand):
     help = 'Run Kafka consumer'
 
     def handle(self, *args, **kwargs):
-        consumer_service = KafkaConsumerService(bootstrap_servers='localhost:9092')
+        consumer_service = KafkaConsumerService(bootstrap_servers='localhost:9093')
         consumer_service.listen()

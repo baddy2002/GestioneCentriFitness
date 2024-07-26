@@ -259,5 +259,8 @@ GS_BUCKET_NAME = 'GestioneCentriFitness'
 DEFAULT_FILE_STORAGE = 'users.backends.GoogleDriveStorage'
 
 
-KAFKA_BOOTSTRAP_SERVERS = ['localhost:9092']
-KAFKA_TOPIC = 'employee-invitation'
+KAFKA_BOOTSTRAP_SERVERS_READERS = [getenv('KAFKA_BOOTSTRAP_SERVERS_READERS','localhost:9092')]
+KAFKA_TOPIC_READERS = getenv('KAFKA_TOPIC_READERS','employee-invitation')
+
+KAFKA_BOOTSTRAP_SERVERS_WRITERS = [getenv('KAFKA_BOOTSTRAP_SERVERS_WRITERS','localhost:9092')]
+KAFKA_TOPIC_WRITERS = getenv('KAFKA_TOPIC_WRITERS','invitation-status')

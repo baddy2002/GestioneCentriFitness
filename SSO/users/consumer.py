@@ -8,8 +8,8 @@ from django.conf import settings
 class KafkaConsumerService:
     def __init__(self, bootstrap_servers):
         self.consumer = KafkaConsumer(
-            settings.KAFKA_TOPIC,
-            bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS,
+            settings.KAFKA_TOPIC_READERS,
+            bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS_READERS,
             group_id='sso_group',
             value_deserializer=lambda m: json.loads(m.decode('utf-8'))
         )
@@ -20,7 +20,7 @@ class KafkaConsumerService:
     def process_message(self, message):
         email = message.get('email')
         employee_uuid = message.get('employee_uuid')
-        
+        print("data: "+str(message))
         # Verifica esistenza utente e creazione invito
         user = UserAccount.objects.filter(email=email).first()
         if user:

@@ -237,15 +237,17 @@ class ManagerViewRegistration(APIView):
             p_iva = request.data.get('p_iva')
             if not validate_partita_iva(p_iva):
                 return JsonResponse({"Error": "Impossible register the p_iva is not correct"},status=status.HTTP_400_BAD_REQUEST)
-            res =registerUser(request.data.get('email'), request.data.get('first_name'), request.data.get('password'), request.data.get('re_password'))
-            if res.status_code != 201:
-                return JsonResponse(json.loads(res.content), status=res.status_code)
-            user_data = res.json()
-            user = get_object_or_404(UserAccount, pk=user_data['id'])
+            user = UserAccount.objects.filter(email=request.data.get('email')).first()
+            if not user:
+                res =registerUser(request.data.get('email'), request.data.get('first_name'), request.data.get('password'), request.data.get('re_password'))
+                if res.status_code != 201:
+                    return JsonResponse(json.loads(res.content), status=res.status_code)
+                user_data = res.json()
+                user = get_object_or_404(UserAccount, pk=user_data['id'])
 
             user.p_iva = p_iva
             user.save()
-            manager_group = Group.objects.get(name="Manager")
+            manager_group = Group.objects.get(name="manager")
             user.groups.add(manager_group)
             return JsonResponse({"id":user.pk, "email": user.email, "first_name": user.first_name},status=status.HTTP_201_CREATED)
         else:
