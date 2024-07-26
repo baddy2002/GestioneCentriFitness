@@ -26,9 +26,9 @@ class KafkaConsumerService:
             if status == 'accepted':
                 employee.is_active = True
                 employee.save()
-                exit = Exit.objects.filter(employee_uuid=employee.uuid, type='salary').first()
-                exit.is_active = True
-                exit.save()
+                exit_instance = Exit.objects.filter(employee_uuid=employee.uuid, type='salary').first()
+                exit_instance.is_active = True
+                exit_instance.save()
             elif status == 'rejected':
                 employee.delete()
         except Employee.DoesNotExist:
