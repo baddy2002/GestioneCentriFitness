@@ -1,9 +1,11 @@
-import Image from "next/image";
+// pages/index.tsx
+'use client';
+import CenterForm from '@/components/forms/CenterForm'
 
-export default function Home() {
+const Home: React.FC = () => {
   return (
-    <div>
-      dio porco è la pagina che aggiunge un centro dio merda
-    </div>
+      <CenterForm />
   );
-}
+};
+
+export default Home;
