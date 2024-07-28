@@ -93,32 +93,41 @@ export default function Navbar() {
                                 </div>
                                 <div className="flex items-center">
                                 <NavLink href="/dashboard">
-                                    {isAuthenticated ? (
-                                      user?.photo ? (
-                                      <img
-                                        className="h-12 w-12 rounded-full border ml-auto"
-                                        src={user?.photo}
-                                        alt="User profile"
-                                    />
-                                  ) :
-                                       <div 
-                                       className="h-12 w-12 rounded-full border ml-auto"
-                                       >
-                                       {(user?.first_name && user?.last_name ? user?.first_name.charAt(0)+user?.last_name.charAt(0): "User")}
-                                       </div>
-                                    ) : (
-                                      <div className="h-12 w-12 rounded-full bg-gray-500 flex items-center justify-center ml-auto">
-                                      <svg
-                                          className="h-6 w-6 text-white"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          viewBox="0 0 24 24"
-                                          xmlns="http://www.w3.org/2000/svg"
-                                      >
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 12c2.28 0 4-1.72 4-4s-1.72-4-4-4-4 1.72-4 4 1.72 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
-                                      </svg>
-                                  </div>
-                                    )}
+                                {isAuthenticated ? (
+                                            user?.photo ? (
+                                                <img
+                                                    className="h-12 w-12 rounded-full border ml-auto"
+                                                    src={user.photo}
+                                                    alt="User profile image"
+                                                />
+                                            ) : (
+                                                
+                                                <div className="h-12 w-12 rounded-full bg-gray-500 flex items-center justify-center text-center center ml-auto text-white text-xl font-bold">
+                                                    {user?.first_name && user?.first_name !=='None' &&
+                                                    user?.last_name && user?.last_name !=='None' ? (
+                                                        
+                                                        <>
+                                                            {user.first_name.charAt(0)}
+                                                            {user.last_name.charAt(0)}
+                                                        </>
+                                                    ) : (
+                                                        'User'
+                                                    )}
+                                                </div>
+                                            )
+                                        ) : (
+                                            <div className="h-12 w-12 rounded-full bg-gray-500 flex items-center justify-center ml-auto">
+                                                <svg
+                                                    className="h-6 w-6 text-white"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                >
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 12c2.28 0 4-1.72 4-4s-1.72-4-4-4-4 1.72-4 4 1.72 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
+                                                </svg>
+                                            </div>
+                                        )}
                                 </NavLink>
                                 </div>
                             </div>

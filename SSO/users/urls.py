@@ -5,7 +5,7 @@ from .views import (
       CustomTokenVerifyView, 
       LogoutView, 
       CustomProviderAuthView, 
-      CompleteUserView,
+      InformationView,
       ManagerViewRegistration,
       InvitoView
 )
@@ -19,8 +19,9 @@ urlpatterns = [
     path('jwt/refresh', CustomTokenRefreshView.as_view()),
     path('jwt/verify', CustomTokenVerifyView.as_view()),
     path('logout/', LogoutView.as_view()),
-    path('complete/', CompleteUserView.as_view()),
+    path('informations/<str:viewName>', InformationView.as_view()),
     path('users/manager', ManagerViewRegistration.as_view()),
     path('complete/invitations', InvitoView.as_view()),
     path('complete/invitations/<str:uuid>', InvitoView.as_view()),
+    
 ]

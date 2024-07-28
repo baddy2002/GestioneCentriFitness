@@ -33,12 +33,12 @@ const authApiSlice = apiSlice.injectEndpoints ({
             
         }),
         retrieveUserComplete: builder.query<UserComplete, void>({
-            query: () => '/complete/',
+            query: () => '/informations/complete',
             
         }),
         ModifyUserComplete: builder.mutation({
             query: (formData: FormData) => ({
-                url: '/complete/',
+                url: '/informations/complete',
                 method: 'PUT',
                 body: formData
             }),

@@ -24,7 +24,7 @@ export default function RequireAuth({children}: Props){
     }
 
     if (!isAuthenticated){
-        redirect('/auth/login');
+        redirect(`${process.env.NEXT_PUBLIC_SSO}/auth/login`);
 
     }
 

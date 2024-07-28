@@ -11,7 +11,7 @@ import { Mutex } from 'async-mutex'
 // create a new mutex
 const mutex = new Mutex()
 const baseQuery = fetchBaseQuery({ 
-    baseUrl: `${process.env.SSO_PUBLIC_HOST}/api`,
+    baseUrl: `${process.env.NEXT_PUBLIC_SSO}/api`,
     credentials: 'include',
 })
 const baseQueryWithReauth: BaseQueryFn<
@@ -36,7 +36,7 @@ const baseQueryWithReauth: BaseQueryFn<
           extraOptions
         )
         if (refreshResult.data) {
-          api.dispatch(setAuth)
+          api.dispatch(setAuth(null))
           result = await baseQuery(args, api, extraOptions)
         } else {
           api.dispatch(logout())
@@ -56,7 +56,7 @@ const baseQueryWithReauth: BaseQueryFn<
 
 
 export const apiSlice = createApi({
-    reducerPath: 'api',
+    reducerPath: 'appApi',
     baseQuery: baseQueryWithReauth,
     endpoints: builder => ({}),
 });

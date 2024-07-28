@@ -11,6 +11,10 @@ import { Mutex } from 'async-mutex'
 // create a new mutex
 const mutex = new Mutex()
 const baseQuery = fetchBaseQuery({ 
+    baseUrl: `${process.env.NEXT_PUBLIC_SSO}/api`,
+    credentials: 'include',
+})
+const centerQuery = fetchBaseQuery({ 
     baseUrl: `${process.env.NEXT_PUBLIC_HOST}/api`,
     credentials: 'include',
 })
@@ -21,7 +25,7 @@ const baseQueryWithReauth: BaseQueryFn<
 > = async (args, api, extraOptions) => {
   // wait until the mutex is available without locking it
   await mutex.waitForUnlock()
-  let result = await baseQuery(args, api, extraOptions)
+  let result = await centerQuery(args, api, extraOptions)
   if (result.error && result.error.status === 401) {
     // checking whether the mutex is locked
     if (!mutex.isLocked()) {
@@ -55,8 +59,8 @@ const baseQueryWithReauth: BaseQueryFn<
 }
 
 
-export const apiSlice = createApi({
-    reducerPath: 'api',
+export const centerApiSlice = createApi({
+    reducerPath: 'centerApi',
     baseQuery: baseQueryWithReauth,
     endpoints: builder => ({}),
 });

@@ -80,8 +80,8 @@ export default function Page() {
             group: data.get('group') as string,
           };
           dispatch(setAuth(updateUser));
+          window.location.reload();
           toast.success('User updated successfully');
-          //window.location.reload();
       } catch (error) {
           toast.error('Error updating user: ');
       }

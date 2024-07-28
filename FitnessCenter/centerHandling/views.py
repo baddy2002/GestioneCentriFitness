@@ -12,6 +12,9 @@ from django.db import IntegrityError, DatabaseError, OperationalError
 from django.core.exceptions import ValidationError
 import jwt
 import requests
+from django.db.models import Q
+import uuid
+from urllib.parse import unquote, quote
 
 from .tokenService import get_principal, jwt_base_authetication, jwt_manager_authetication, jwt_nutritionist_authetication, jwt_trainer_authetication
 #<=========================================  Employee  ==========================================================>
@@ -260,8 +263,10 @@ class CenterView(APIView):
     
     def get_search(self, query_params):
         centers = Center.objects.all()
-
-        order_by = query_params.get('orderBy', 'name')
+        if query_params.get('orderBy'):
+            order_by = unquote(query_params.get('orderBy'))
+        else:
+            order_by = 'name'
         if query_params.get('obj.uuid') is not None:
             centers=centers.filter(uuid=query_params.get('obj.uuid'))
         if query_params.get('like.name') is not None:
@@ -269,7 +274,14 @@ class CenterView(APIView):
         if query_params.get('like.description') is not None:
             centers=centers.filter(description__icontains=query_params.get('like.description'))
         if query_params.get('obj.manager_id') is not None:
-            centers=centers.filter(manager_id=query_params.get('obj.manager_id'))
+            employees = Employee.objects.filter(uuid=query_params.get('obj.manager_id'))
+            center_uuids = [uuid.UUID(center_uuid) for center_uuid in employees.values_list('center_uuid', flat=True)]
+            centers = centers.filter(
+        Q(manager_id=query_params.get('obj.manager_id')) | Q(uuid__in=center_uuids))
+        if query_params.get('obj.employee_uuid') is not None:
+            employees = Employee.objects.filter(uuid=query_params.get('obj.employee_uuid'))
+            center_uuids = [uuid.UUID(center_uuid) for center_uuid in employees.values_list('center_uuid', flat=True)]
+            centers = centers.filter(uuid__in=center_uuids)
         if query_params.get('obj.province') is not None:
             centers=centers.filter(province=query_params.get('obj.province'))
         if query_params.get('like.city') is not None:
@@ -283,7 +295,7 @@ class CenterView(APIView):
         else:
             centers=centers.filter(is_active=True)
 
-        centers = centers.all().order_by(order_by)
+        centers = centers.all().order_by(*order_by.split(','))
         
         return centers  
 

@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { Group } from "next/dist/shared/lib/router/utils/route-regex";
 
 interface user{
     id: string;
@@ -7,6 +8,7 @@ interface user{
     last_name: string;
     data_iscrizione: string;
     photo: string;
+    group: string;
 };
 
 interface authState {

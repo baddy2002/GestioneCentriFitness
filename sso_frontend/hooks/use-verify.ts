@@ -37,7 +37,7 @@ export default function useVerify() {
                 console.error('Errore:', error); // Log dell'errore completo
         // Estrarre informazioni specifiche dell'errore, se disponibili
         const errorMessage = error?.data?.message || error.message || "Errore sconosciuto";
-        toast.error(`Errore: ${errorMessage}`);
+        
             })
             .finally(() => {
                 dispatch(finishInitialLoad());

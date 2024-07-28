@@ -16,6 +16,10 @@ interface Props {
     onSave: (data: FormData) => void; // Callback per inviare i dati aggiornati
 }
 
+const handleRedirect = (url: string) => {
+    window.location.href = url;
+};
+
 export default function List({ config, onSave }: Props) {
     const [values, setValues] = useState<{ [key: string]: string }>(
         config.reduce((acc, item) => ({ ...acc, [item.key]: item.value || '' }), {})
@@ -44,6 +48,11 @@ export default function List({ config, onSave }: Props) {
         onSave(formData);
     };
 
+    const handleRemovePhoto = () => {
+        setFile(null);
+        setValues({ ...values, photo: '' }); // Rimuovi la foto dai valori
+    };
+
 
     return (
         <>
@@ -56,26 +65,38 @@ export default function List({ config, onSave }: Props) {
                             </p>
                         </div>
                         <div>
-                            {key === 'photo' ? (
-                                // Se il campo è "photo", mostra l'immagine corrente e l'input file
+                        {key === 'photo' ? (
                                 <div className="flex items-center space-x-4">
-                                    
-                                    {typeof values.photo === 'string' && values.photo !== '' && (
-                                        <img
-                                        
-                                            src={(values.photo)}
-                                            alt="User profile"
-                                            className="h-40 w-40 rounded-full border"
+                                    {(file || values[key]) ? (
+                                        <div className="flex items-center space-x-4">
+                                            <img
+                                                src={file ? URL.createObjectURL(file) : (values[key] as string)}
+                                                alt={label}
+                                                className="h-40 w-40 rounded-full border"
+                                            />
+                                            {!readOnly && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleRemovePhoto}
+                                                    className="ml-4 text-red-500"
+                                                >
+                                                    Remove
+                                                </button>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <p>No photo</p>
+                                    )}
+                                    {!readOnly && (
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => handleChange(key, e.target.files?.[0] || null)}
+                                            className="text-sm font-semibold leading-6 text-gray-900 border border-gray-300 rounded px-2"
                                         />
                                     )}
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) => handleChange(key, e.target.files?.[0] || null)}
-                                        className="text-sm font-semibold leading-6 text-gray-900 border border-gray-300 rounded px-2"
-                                    />
                                 </div>
-                            ) : 
+                            ): 
                                 (key === 'group' && values[key].toString().trim().toLowerCase() !== 'customer' ? (
                                     <div>
                                         <input
@@ -86,13 +107,13 @@ export default function List({ config, onSave }: Props) {
                                             className={`text-sm font-semibold leading-6 text-gray-900 border border-gray-300 rounded px-2 ${readOnly ? 'bg-gray-200' : ''}`}
                                         />
                                         <button
-                                            onClick={() => { /* Link to fitnessCentersFrontend */ }}
+                                            onClick={() => { handleRedirect(`${process.env.NEXT_PUBLIC_PRENOTAZIONI_FE}/personal` )}}
                                             className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
                                         >
                                             My Area
                                         </button>
                                         <button
-                                            onClick={() => { /* Link to fitnessCentersFrontend */ }}
+                                            onClick={() => handleRedirect(`${process.env.NEXT_PUBLIC_CENTERHANDLING_FE}/centers`)}
                                             className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
                                         >
                                             Handle centers
@@ -119,7 +140,7 @@ export default function List({ config, onSave }: Props) {
                                 (
                                     <input
                                         type="text"
-                                        value={values[key]}
+                                        value={values[key] === 'None' ? '' : values[key]}
                                         onChange={(e) => handleChange(key, e.target.value)}
                                         readOnly={readOnly}
                                         className={`text-sm font-semibold leading-6 text-gray-900 border border-gray-300 rounded px-2 ${readOnly ? 'bg-gray-200' : ''}`}

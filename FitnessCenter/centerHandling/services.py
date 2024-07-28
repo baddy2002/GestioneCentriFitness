@@ -9,7 +9,6 @@ class EmployeeService:
         self.kafka_producer = KafkaProducerService(bootstrap_servers='localhost:9092')
 
     def send_invitation(self, employee_email, employee_uuid):
-        #TODO: Logic of invitation on an employee
         data = {
             'email': employee_email,
             'employee_uuid': str(employee_uuid)
@@ -34,8 +33,7 @@ class EmployeeService:
             exit_serializer.save()
         else:
             print(exit_serializer.errors)  
-        self.send_invitation(employee.email ,employee.uuid)            #TODO: handle invation
-
+        self.send_invitation(employee.email ,employee.uuid)          
 
     def get_search(self, query_params):
         employees = Employee.objects.all()

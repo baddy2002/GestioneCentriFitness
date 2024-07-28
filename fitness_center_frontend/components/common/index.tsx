@@ -3,3 +3,5 @@ export {default as Footer} from "./Footer"
 export {default as Spinner} from './Spinner'
 export {default as NavLink} from './NavLink'
 export {default as List} from './List'
+export {default as PageLayout} from './PageLayout'
+export {default as Menu} from './Menu'

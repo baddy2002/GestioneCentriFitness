@@ -1,3 +1,4 @@
+// components/Navbar.tsx
 'use client';
 
 import { Disclosure, DisclosureButton, DisclosurePanel } from "@headlessui/react";
@@ -7,6 +8,7 @@ import { useLogoutMutation } from "@/redux/features/authApiSlice";
 import { usePathname } from "next/navigation";
 import { logout as setLogout } from "@/redux/features/authSlices";
 import { NavLink } from '@/components/common';
+import { useUserPhotoQuery } from '@/redux/features/authApiSlice'; // Assicurati di importare la query
 
 export default function Navbar() {
     const pathname = usePathname();
@@ -14,6 +16,8 @@ export default function Navbar() {
     const [logout] = useLogoutMutation();
 
     const { isAuthenticated, user } = useAppSelector(state => state.auth);  // Assuming user information is in state.auth
+    const { data: photo, isLoading: photoLoading } = useUserPhotoQuery(); // Utilizza la query per ottenere l'immagine
+
     const handleLogout = () => {
         logout(undefined)
             .unwrap()
@@ -22,14 +26,17 @@ export default function Navbar() {
             });
     };
 
+    const handleRedirect = (url: string) => {
+        window.location.href = url;
+    };
+
     const isSelected = (path: string) => pathname === path;
 
     const authLinks = (isMobile: boolean) => (
         <>
             <NavLink
-                isSelected={isSelected('/dashboard')}
+                onClick={() => handleRedirect(`${process.env.NEXT_PUBLIC_SSO_FE}/dashboard`)}
                 isMobile={isMobile}
-                href="/dashboard"
             >
                 Dashboard
             </NavLink>
@@ -92,34 +99,46 @@ export default function Navbar() {
                                     {isAuthenticated ? authLinks(false) : guestLinks(false)}
                                 </div>
                                 <div className="flex items-center">
-                                <NavLink href="/dashboard">
-                                    {isAuthenticated ? (
-                                      user?.photo ? (
-                                      <img
-                                        className="h-12 w-12 rounded-full border ml-auto"
-                                        src={user?.photo}
-                                        alt="User profile"
-                                    />
-                                  ) :
-                                       <div 
-                                       className="h-12 w-12 rounded-full border ml-auto"
-                                       >
-                                       {(user?.first_name && user?.last_name ? user?.first_name.charAt(0)+user?.last_name.charAt(0): "User")}
-                                       </div>
-                                    ) : (
-                                      <div className="h-12 w-12 rounded-full bg-gray-500 flex items-center justify-center ml-auto">
-                                      <svg
-                                          className="h-6 w-6 text-white"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          viewBox="0 0 24 24"
-                                          xmlns="http://www.w3.org/2000/svg"
-                                      >
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 12c2.28 0 4-1.72 4-4s-1.72-4-4-4-4 1.72-4 4 1.72 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
-                                      </svg>
-                                  </div>
-                                    )}
-                                </NavLink>
+                                    <div
+                                        className="h-12 w-12 rounded-full cursor-pointer"
+                                        onClick={() => handleRedirect(`${process.env.NEXT_PUBLIC_SSO_FE}/dashboard`)}
+                                    >
+                                        {isAuthenticated ? (
+                                            !photoLoading && photo ? (
+                                                <img
+                                                    className="h-12 w-12 rounded-full border ml-auto"
+                                                    src={photo.photo}
+                                                    alt="User profile"
+                                                />
+                                            ) : (
+                                                
+                                                <div className="h-12 w-12 rounded-full bg-gray-500 flex items-center justify-center text-center center ml-auto text-white text-xl font-bold">
+                                                    {user?.first_name && user?.first_name !=='None' &&
+                                                    user?.last_name && user?.last_name !=='None' ? (
+                                                        
+                                                        <>
+                                                            {user.first_name.charAt(0)}
+                                                            {user.last_name.charAt(0)}
+                                                        </>
+                                                    ) : (
+                                                        'User'
+                                                    )}
+                                                </div>
+                                            )
+                                        ) : (
+                                            <div className="h-12 w-12 rounded-full bg-gray-500 flex items-center justify-center ml-auto">
+                                                <svg
+                                                    className="h-6 w-6 text-white"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                >
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 12c2.28 0 4-1.72 4-4s-1.72-4-4-4-4 1.72-4 4 1.72 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
+                                                </svg>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
