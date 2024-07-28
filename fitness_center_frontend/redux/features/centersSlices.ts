@@ -32,9 +32,12 @@ const centersSlice = createSlice({
     setCentersData(state, action: PayloadAction<Center[]>) {
       state.data = action.payload;
     },
+    clearCentersData(state) {
+      state.data = [];
+    },
   },
 });
 
 // Esporta i reducer e le azioni
-export const { setCentersData } = centersSlice.actions;
+export const { setCentersData, clearCentersData } = centersSlice.actions;
 export default centersSlice.reducer;

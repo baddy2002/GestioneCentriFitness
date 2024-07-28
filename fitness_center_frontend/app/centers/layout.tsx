@@ -1,5 +1,4 @@
-'use client'
-
+'use client';
 import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageLayout } from "@/components/common";
@@ -7,7 +6,7 @@ import { Inter } from "next/font/google";
 import { useFetchCentersQuery, useFetchCentersWithManagerIdQuery } from '@/redux/features/centerApiSLice';
 import { useAppSelector, useAppDispatch } from '@/redux/hooks';
 import { MenuItem } from "@/components/common/Menu";
-import { setCentersData } from '@/redux/features/centersSlices';
+import { setCentersData, clearCentersData } from '@/redux/features/centersSlices';
 import FilterModal from '@/components/common/FilterModal';
 
 interface Filters {
@@ -36,21 +35,23 @@ export default function CentersLayout({ children }: Readonly<{ children: React.R
     open: false,
   });
 
+  const [appliedFilters, setAppliedFilters] = useState<Filters>(filters);
+
   const { refetch: refetchCenters } = useFetchCentersQuery({
-    orderBy: filters.orderBy,
-    name: filters.name,
-    description: filters.description,
-    province: filters.province,
-    city: filters.city,
+    orderBy: appliedFilters.orderBy,
+    name: appliedFilters.name,
+    description: appliedFilters.description,
+    province: appliedFilters.province,
+    city: appliedFilters.city,
   });
 
   const { refetch: refetchMyList } = useFetchCentersWithManagerIdQuery({
     managerId,
-    orderBy: filters.orderBy,
-    name: filters.name,
-    description: filters.description,
-    province: filters.province,
-    city: filters.city,
+    orderBy: appliedFilters.orderBy,
+    name: appliedFilters.name,
+    description: appliedFilters.description,
+    province: appliedFilters.province,
+    city: appliedFilters.city,
   }, { skip: !managerId });
 
   const handleFilterChange = useCallback((newFilters: Partial<Filters>) => {
@@ -58,17 +59,30 @@ export default function CentersLayout({ children }: Readonly<{ children: React.R
   }, []);
 
   const applyFilters = useCallback(async () => {
+    setAppliedFilters(filters); // Applicare i filtri
+
     try {
+      console.log('Applying filters:', filters);
+
+      // Resettare i dati esistenti prima di effettuare una nuova richiesta
+      dispatch(clearCentersData());
+
       let result;
       if (managerId) {
+        console.log('Fetching centers with manager ID:', managerId);
         result = await refetchMyList();
       } else {
+        console.log('Fetching all centers');
         result = await refetchCenters();
       }
 
       if (result && result.data) {
+        console.log('Fetched data:', result.data);
         dispatch(setCentersData(result.data.centers));
+      } else {
+        console.log('No data received');
       }
+
       router.push('/centers');
     } catch (error) {
       console.error('Error fetching centers:', error);
@@ -80,10 +94,14 @@ export default function CentersLayout({ children }: Readonly<{ children: React.R
     { text: 'My List', action: async () => {
         if (managerId) {
           try {
+            console.log('Fetching my list with manager ID:', managerId);
             const result = await refetchMyList();
             if (result && result.data) {
+              console.log('Fetched data for my list:', result.data);
               dispatch(setCentersData(result.data.centers));
               router.push('/centers');
+            } else {
+              console.log('No data received for my list');
             }
           } catch (error) {
             console.error('Error fetching my list:', error);
@@ -96,10 +114,14 @@ export default function CentersLayout({ children }: Readonly<{ children: React.R
     },
     { text: 'All Centers', action: async () => {
         try {
+          console.log('Fetching all centers');
           const result = await refetchCenters();
           if (result && result.data) {
+            console.log('Fetched data for all centers:', result.data);
             dispatch(setCentersData(result.data.centers));
             router.push('/centers');
+          } else {
+            console.log('No data received for all centers');
           }
         } catch (error) {
           console.error('Error fetching all centers:', error);
