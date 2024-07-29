@@ -1,5 +1,6 @@
 // components/CenterForm.tsx
 
+import { useAddCenterMutation } from '@/redux/features/centerApiSLice';
 import React, { useState } from 'react';
 
 const provinces = [
@@ -22,6 +23,8 @@ const CenterForm: React.FC = () => {
     via: '',
     house_number: ''
   });
+  
+  const [addCenter, { isLoading, isSuccess, isError, error }] = useAddCenterMutation();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -31,10 +34,31 @@ const CenterForm: React.FC = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(formData);
-    // Handle form submission (e.g., send data to API or server)
+    try {
+      await addCenter({
+        name: formData.name,
+        description: formData.description,
+        manager_id: '', // Aggiungi l'ID del manager se necessario
+        province: formData.provincia,
+        city: formData.city,
+        street: formData.via,
+        house_number: Number(formData.house_number),
+        
+      }).unwrap();
+      // Opzionale: reimposta il modulo o gestisci il successo come desiderato
+      setFormData({
+        name: '',
+        description: '',
+        provincia: '',
+        city: '',
+        via: '',
+        house_number: ''
+      });
+    } catch (err) {
+      console.error('Failed to save center: ', err);
+    }
   };
 
   return (
@@ -123,6 +147,7 @@ const CenterForm: React.FC = () => {
         >
           Submit
         </button>
+        {isSuccess && <p className="text-green-500 mt-4">Center added successfully!</p>}
       </form>
     </div>
   );

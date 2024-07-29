@@ -22,9 +22,9 @@ export default function RequireAuth({children}: Props){
         )
 
     }
-
+    console.log("the user is authenticated: " + !isAuthenticated)
     if (!isAuthenticated){
-        redirect('/auth/login');
+        redirect(`${process.env.NEXT_PUBLIC_SSO_FE}/auth/login`);
 
     }
 

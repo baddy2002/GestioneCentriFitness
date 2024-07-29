@@ -1,3 +1,5 @@
+// services/centersSlices.ts
+
 import { centerApiSlice } from '../services/centersSlices'; // Assicurati di importare il tuo apiSlice principale
 
 interface Center {
@@ -70,6 +72,13 @@ const centersApiSlice = centerApiSlice.injectEndpoints({
     fetchCentersWithEmployeeUuid: builder.query<FetchCentersResponse, string>({
       query: (employeeUuid) => `/centers/?obj.employee_uuid=${employeeUuid}`,
     }),
+    addCenter: builder.mutation<void, Omit<Center, 'uuid' | 'is_active'>>({
+      query: (newCenter) => ({
+        url: '/centers/',
+        method: 'POST',
+        body: newCenter,
+      }),
+    }),
   }),
 });
 
@@ -77,4 +86,5 @@ const centersApiSlice = centerApiSlice.injectEndpoints({
 export const {
   useFetchCentersQuery,
   useFetchCentersWithManagerIdQuery,
+  useAddCenterMutation,
 } = centersApiSlice;

@@ -10,6 +10,7 @@ import { logout as setLogout } from "@/redux/features/authSlices";
 import { NavLink } from '@/components/common';
 import { useUserPhotoQuery } from '@/redux/features/authApiSlice'; // Assicurati di importare la query
 
+
 export default function Navbar() {
     const pathname = usePathname();
     const dispatch = useAppDispatch();
@@ -23,6 +24,7 @@ export default function Navbar() {
             .unwrap()
             .then(() => {
                 dispatch(setLogout());
+                
             });
     };
 

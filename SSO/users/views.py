@@ -6,11 +6,13 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from djoser.social.views import ProviderAuthView
 from django.core.exceptions import FieldError, ValidationError
 import jwt
+import uuid
 from rest_framework.parsers import MultiPartParser, FormParser, FileUploadParser
 from django.shortcuts import get_object_or_404
 from os import getenv
 from .models import UserAccount, Photo, Invito
 from .authentication import CustomTokenObtainPairSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
 import requests
 import json
 from django.contrib.auth.models import Group
@@ -28,6 +30,18 @@ class CustomProviderAuthView(ProviderAuthView):
         if response.status_code == 201:
             access_token = response.data.get('access')
             refresh_token = response.data.get('refresh')
+
+           # Decode the token to get user information
+            token = jwt.decode(access_token.encode('UTF-8'), settings.SECRET_KEY, algorithms=['HS256'])
+            user_id = token.get('user_id')
+            user = UserAccount.objects.get(pk=uuid.UUID(user_id))
+           
+            # Add custom claims to the token
+            token['groups'] = [group.name for group in user.groups.all()]
+            token['full_name'] = user.first_name + user.last_name
+            token['email'] = user.email
+            print(token)
+            access_token = jwt.encode(token, settings.SECRET_KEY)
 
             response.set_cookie(
                 'access',
@@ -54,13 +68,13 @@ class CustomProviderAuthView(ProviderAuthView):
         user.is_active = True
         user.save()
         return response
-
+    
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
-
+        print(response)
         if response.status_code == 200:
             access_token = response.data.get('access')
             refresh_token = response.data.get('refresh')
