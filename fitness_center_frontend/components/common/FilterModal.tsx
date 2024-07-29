@@ -1,6 +1,8 @@
+
+'use client';
 import React, { useCallback } from 'react';
 import Modal from 'react-modal';
-
+import { useRouter } from 'next/navigation';
 const modalStyles = {
   content: {
     top: '50%',
@@ -14,7 +16,6 @@ const modalStyles = {
     maxWidth: '90%',
   },
 };
-
 interface FilterModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -42,6 +43,7 @@ const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, filters, onF
   }, [onFilterChange]);
 
   const handleApplyFilters = useCallback(() => {
+    
     onApplyFilters(); // Applica i filtri
     onClose(); // Chiudi il popup dopo aver applicato i filtri
   }, [onApplyFilters, onClose]);

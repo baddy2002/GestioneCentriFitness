@@ -55,15 +55,16 @@ export default function CentersLayout({ children }: Readonly<{ children: React.R
     city: appliedFilters.city,
   }, { skip: !managerId });
 
+
   const handleFilterChange = useCallback((newFilters: Partial<Filters>) => {
     setFilters(prevFilters => ({ ...prevFilters, ...newFilters }));
   }, []);
 
   const applyFilters = useCallback(async () => {
-    setAppliedFilters(filters); // Applicare i filtri
+    await setAppliedFilters(filters); // Applicare i filtri (aspettare per essere sicuri vengano applicati)
 
     try {
-      console.log('Applying filters:', filters);
+      console.log('Applying filters:', appliedFilters);
 
       // Resettare i dati esistenti prima di effettuare una nuova richiesta
       dispatch(clearCentersData());
@@ -75,6 +76,7 @@ export default function CentersLayout({ children }: Readonly<{ children: React.R
       } else {
         console.log('Fetching all centers');
         result = await refetchCenters();
+        console.log(result);
       }
 
       if (result && result.data) {
@@ -83,7 +85,7 @@ export default function CentersLayout({ children }: Readonly<{ children: React.R
       } else {
         console.log('No data received');
       }
-
+      
       router.push('/centers');
     } catch (error) {
       console.error('Error fetching centers:', error);
