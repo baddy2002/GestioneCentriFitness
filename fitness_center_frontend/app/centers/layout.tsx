@@ -10,6 +10,7 @@ import { setEmployeesData, clearEmployeesData } from '@/redux/features/employees
 import { setExitsData, clearExitsData } from '@/redux/features/exitsSlices';
 import FilterModal from '@/components/common/FilterModal';
 import { useFetchEntities } from '@/hooks/fetchEntities';
+import { setSelectedEntity } from '@/redux/features/UiSlices';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,12 +30,14 @@ interface EmployeeFilters extends BaseFilters {
   first_name: string;
   last_name: string;
   type: string;
+  open: boolean;
 }
 
 interface ExitFilters extends BaseFilters {
   type: string;
   amount: string;
   expiration_date: string;
+  open: boolean;
 }
 
 type Filters = CenterFilters | EmployeeFilters | ExitFilters;
@@ -68,6 +71,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const user = useAppSelector(state => state.auth?.user);
   const managerId = user?.id || '';
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+
 
   const [entity, setEntity] = useState<'centers' | 'employees' | 'exits'>('centers');
   const [filters, setFilters] = useState<CenterFilters | EmployeeFilters | ExitFilters>({
@@ -176,27 +181,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const menuItems: MenuItem[] = [
     { text: 'Add Center', href: '/centers/add', requiredRole: ['manager', 'admin'] },
     { text: 'My List', action: async () => {
+        await setEntity('centers');
+        setIsModalOpen(false);
         await setIsMyList(true);
         if (managerId) {
           try {
             const result = await refetch();
             if (result && result.data) {
-              switch (entity) {
-                case 'centers':
-                  if ('centers' in result.data) {
-                    dispatch(setCentersData(result.data.centers));
-                  }
-                  break;
-                case 'employees':
-                  if ('employees' in result.data) {
-                    dispatch(setEmployeesData(result.data.employees));
-                  }
-                  break;
-                case 'exits':
-                  if ('exits' in result.data) {
-                    dispatch(setExitsData(result.data.exits));
-                  }
-                  break;
+              if ('centers' in result.data) {
+                dispatch(setCentersData(result.data.centers));
               }
               router.push('/centers');
             } else {
@@ -212,6 +205,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       requiredRole: ['trainer', 'nutritionist', 'manager', 'admin']
     },
     { text: 'All Centers', action: async () => {
+      await setEntity('centers');
+      setIsModalOpen(false);
         await setIsMyList(false);
         try {
           const result = await refetch();
@@ -229,13 +224,47 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       },
       requiredRole: ['trainer', 'nutritionist', 'manager', 'admin']
     },
-    { text: 'Filters', action: () => { setEntity('centers'); setFilters(prev => ({ ...prev, open: true })); },
+    { text: 'Filters', action: () => {setIsModalOpen(true); setFilters(prev => ({ ...prev, open: true })); },
       requiredRole: ['customer', 'trainer', 'nutritionist', 'manager', 'admin']
     },
-    { text: 'My Employees', action: () => { setEntity('employees'); setFilters(prev => ({ ...prev, open: true })); },
+    { text: 'My Employees', action: async () => {
+      await setEntity('employees');
+      setIsModalOpen(false);
+        try {
+          const result = await refetch();
+          if (result && result.data) {
+            if ('employees' in result.data) {
+              dispatch(setEmployeesData(result.data.employees));
+            }
+            dispatch(setSelectedEntity('employees'));
+            router.push('/centers');
+          } else {
+            console.log('No data received for all employees');
+          }
+        } catch (error) {
+          console.error('Error fetching all employees:', error);
+        }
+      },
       requiredRole: ['admin', 'manager']
     },
-    { text: 'My Exits', action: () => { setEntity('exits'); setFilters(prev => ({ ...prev, open: true })); },
+    { text: 'My Exits', action: async () => {
+      await setEntity('exits');
+      setIsModalOpen(false);
+        try {
+          const result = await refetch();
+          if (result && result.data) {
+            if ('exits' in result.data) {
+              dispatch(setExitsData(result.data.exits));
+            }
+            dispatch(setSelectedEntity('exits'));
+            router.push('/centers');
+          } else {
+            console.log('No data received for all exits');
+          }
+        } catch (error) {
+          console.error('Error fetching all exits:', error);
+        }
+      },
       requiredRole: ['admin', 'manager']
     }
   ];
@@ -243,8 +272,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <PageLayout menuItems={menuItems}>
       <FilterModal
-        isOpen={entity === 'centers' && (filters as CenterFilters).open} // Solo per 'centers'
-        onClose={() => setFilters(prev => ({ ...prev, open: false }))}
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)}
         filters={filters}
         onFilterChange={handleFilterChange}
         onApplyFilters={applyFilters}

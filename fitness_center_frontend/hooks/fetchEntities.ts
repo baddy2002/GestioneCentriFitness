@@ -5,7 +5,6 @@ import { FetchCentersResponse, FetchEmployeesResponse, FetchExitsResponse, useFe
 export function useFetchEntities(entity: string, params: any) {
     switch (entity) {
       case 'centers':
-        console.log("manager:"+params.managerId)
         return useFetchCentersQuery(params)
       case 'employees':
         return useFetchEmployeesWithManagerIdQuery(params);

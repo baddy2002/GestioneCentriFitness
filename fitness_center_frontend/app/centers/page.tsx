@@ -10,8 +10,9 @@ const Page: React.FC = () => {
     centersData: state.centers.centerData,
     employeesData: state.employees.employeeData,
     exitsData: state.exits.exitData,
-    selectedEntity: state.ui.selectedEntity, // Presupponendo che `selectedEntity` venga memorizzata nello stato globale
+    selectedEntity: state.ui.selectedEntity, 
   }));
+  console.log("State values:", { centersData, employeesData, exitsData, selectedEntity });
 
   // Determina i dati e il titolo basato sull'entità selezionata
   let data: any[] = [];
