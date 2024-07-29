@@ -191,6 +191,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               if ('centers' in result.data) {
                 dispatch(setCentersData(result.data.centers));
               }
+              dispatch(setSelectedEntity('centers'));
               router.push('/centers');
             } else {
               console.log('No data received for my list');
@@ -214,6 +215,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             if ('centers' in result.data) {
               dispatch(setCentersData(result.data.centers));
             }
+            dispatch(setSelectedEntity('centers'));
             router.push('/centers');
           } else {
             console.log('No data received for all centers');
