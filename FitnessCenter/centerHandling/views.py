@@ -143,7 +143,15 @@ class ExitView(APIView):
     def get_search(self, query_params):
         exits = Exit.objects.all()
 
-        order_by = query_params.get('orderBy', '-start_date')
+        if query_params.get('orderBy'):
+            order_by = unquote(query_params.get('orderBy'))
+        else:
+            order_by = '-start_date'
+        if query_params.get('obj.manager_id') is not None:
+            centers = Center.objects.filter(manager_id=query_params.get('obj.manager_id'))
+            center_uuids = [center_uuid for center_uuid in centers.values_list(str('uuid'), flat=True)]
+            center_uuids = [str(uuid) for uuid in center_uuids]
+            exits = exits.filter(center_uuid__in=center_uuids)
         if query_params.get('obj.uuid') is not None:
             exits=exits.filter(uuid=query_params.get('obj.uuid'))
         if query_params.get('obj.amount') is not None:
@@ -176,7 +184,7 @@ class ExitView(APIView):
         else:
            exits= exits.filter(is_active=True)
 
-        exits = exits.all().order_by(order_by)
+        exits = exits.all().order_by(*order_by.split(','))
         
         return exits
 

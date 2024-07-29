@@ -1,8 +1,8 @@
-
 'use client';
 import React, { useCallback } from 'react';
 import Modal from 'react-modal';
-import { useRouter } from 'next/navigation';
+
+// Stili del modal
 const modalStyles = {
   content: {
     top: '50%',
@@ -16,34 +16,37 @@ const modalStyles = {
     maxWidth: '90%',
   },
 };
-interface FilterModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  filters: {
-    orderBy: string;
-    name: string;
-    description: string;
-    province: string;
-    city: string;
-  };
-  onFilterChange: (newFilters: Partial<{
-    orderBy: string;
-    name: string;
-    description: string;
-    province: string;
-    city: string;
-  }>) => void;
-  onApplyFilters: () => void;
+
+// Definizione dei tipi per i filtri
+interface FilterField {
+  label: string;
+  name: string;
+  placeholder: string;
 }
 
-const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, filters, onFilterChange, onApplyFilters }) => {
+interface FilterModalProps<T> {
+  isOpen: boolean;
+  onClose: () => void;
+  filters: T;
+  onFilterChange: (newFilters: Partial<T>) => void;
+  onApplyFilters: () => void;
+  filterFields: FilterField[];
+}
+
+const FilterModal = <T,>({
+  isOpen,
+  onClose,
+  filters,
+  onFilterChange,
+  onApplyFilters,
+  filterFields
+}: FilterModalProps<T>) => {
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    onFilterChange({ [name]: value });
+    onFilterChange({ [name]: value } as Partial<T>);
   }, [onFilterChange]);
 
   const handleApplyFilters = useCallback(() => {
-    
     onApplyFilters(); // Applica i filtri
     onClose(); // Chiudi il popup dopo aver applicato i filtri
   }, [onApplyFilters, onClose]);
@@ -57,56 +60,18 @@ const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, filters, onF
     >
       <h2 className="text-xl font-bold mb-4">Filters</h2>
       <form>
-        <label>
-          Order By:
-          <input
-            type="text"
-            name="orderBy"
-            value={filters.orderBy}
-            onChange={handleChange}
-            placeholder="e.g., name,-province"
-          />
-        </label>
-        <label>
-          Name:
-          <input
-            type="text"
-            name="name"
-            value={filters.name}
-            onChange={handleChange}
-            placeholder="Name"
-          />
-        </label>
-        <label>
-          Description:
-          <input
-            type="text"
-            name="description"
-            value={filters.description}
-            onChange={handleChange}
-            placeholder="Description"
-          />
-        </label>
-        <label>
-          Province:
-          <input
-            type="text"
-            name="province"
-            value={filters.province}
-            onChange={handleChange}
-            placeholder="Province"
-          />
-        </label>
-        <label>
-          City:
-          <input
-            type="text"
-            name="city"
-            value={filters.city}
-            onChange={handleChange}
-            placeholder="City"
-          />
-        </label>
+        {filterFields.map(({ label, name, placeholder }) => (
+          <label key={name}>
+            {label}:
+            <input
+              type="text"
+              name={name}
+              value={(filters[name as keyof T] || '') as string} // Aggiunto || '' per evitare errori
+              onChange={handleChange}
+              placeholder={placeholder}
+            />
+          </label>
+        ))}
         <button
           type="button"
           onClick={handleApplyFilters}

@@ -22,7 +22,6 @@ class UpdateAuthTokenMiddleware(MiddlewareMixin):
                     refresh_response = requests.post(f"{getenv('SSO_URL', 'http://127.0.0.1:8000/')}api/jwt/refresh", json={"refresh": refresh_token}, headers={"Content-Type": "application/json"})
                 
                     token = refresh_response.json().get('access')
-        
         request.META['Authorization'] = token
         request.COOKIES['access'] = token
         request.access_token = token

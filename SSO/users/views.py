@@ -41,7 +41,14 @@ class CustomProviderAuthView(ProviderAuthView):
             token['full_name'] = user.first_name + user.last_name
             token['email'] = user.email
             
+            refresh = jwt.decode(refresh_token.encode('UTF-8'), settings.SECRET_KEY, algorithms=['HS256'])
+        
+            refresh['groups'] = token['groups']
+            refresh['full_name'] = token['full_name']
+            refresh['email'] =  token['email']
+            
             access_token = jwt.encode(token, settings.SECRET_KEY)
+            refresh_token = jwt.encode(refresh, settings.SECRET_KEY)
 
             response.set_cookie(
                 'access',

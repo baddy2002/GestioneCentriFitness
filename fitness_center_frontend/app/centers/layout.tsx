@@ -3,15 +3,21 @@ import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageLayout } from "@/components/common";
 import { Inter } from "next/font/google";
-import { useFetchCentersQuery, useFetchCentersWithManagerIdQuery, useFetchEmployeesWithManagerIdQuery } from '@/redux/features/centerApiSLice';
 import { useAppSelector, useAppDispatch } from '@/redux/hooks';
 import { MenuItem } from "@/components/common/Menu";
 import { setCentersData, clearCentersData } from '@/redux/features/centersSlices';
+import { setEmployeesData, clearEmployeesData } from '@/redux/features/employeesSlices';
+import { setExitsData, clearExitsData } from '@/redux/features/exitsSlices';
 import FilterModal from '@/components/common/FilterModal';
-import { RequireAuth } from '@/components/utils';
+import { useFetchEntities } from '@/hooks/fetchEntities';
 
-interface CenterFilters {
+const inter = Inter({ subsets: ["latin"] });
+
+type BaseFilters = {
   orderBy: string;
+};
+
+interface CenterFilters extends BaseFilters {
   name: string;
   description: string;
   province: string;
@@ -19,97 +25,179 @@ interface CenterFilters {
   open: boolean;
 }
 
-const inter = Inter({ subsets: ["latin"] });
+interface EmployeeFilters extends BaseFilters {
+  first_name: string;
+  last_name: string;
+  type: string;
+}
 
-export default function CentersLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+interface ExitFilters extends BaseFilters {
+  type: string;
+  amount: string;
+  expiration_date: string;
+}
+
+type Filters = CenterFilters | EmployeeFilters | ExitFilters;
+
+type FilterField = { label: string; name: string; placeholder: string };
+
+const filtersFields: Record<'centers' | 'employees' | 'exits', FilterField[]> = {
+  centers: [
+    { label: 'Order By', name: 'orderBy', placeholder: 'e.g., name,-province' },
+    { label: 'Name', name: 'name', placeholder: 'Name' },
+    { label: 'Description', name: 'description', placeholder: 'Description' },
+    { label: 'Province', name: 'province', placeholder: 'Province' },
+    { label: 'City', name: 'city', placeholder: 'City' },
+  ],
+  employees: [
+    { label: 'Order By', name: 'orderBy', placeholder: 'e.g., last_name,-first_name' },
+    { label: 'First Name', name: 'first_name', placeholder: 'First Name' },
+    { label: 'Last Name', name: 'last_name', placeholder: 'Last Name' },
+    { label: 'Type', name: 'type', placeholder: 'Type' },
+  ],
+  exits: [
+    { label: 'Order By', name: 'orderBy', placeholder: 'e.g., amount,-expiration_date' },
+    { label: 'Type', name: 'type', placeholder: 'Type' },
+    { label: 'Amount', name: 'amount', placeholder: 'Amount' },
+    { label: 'Expiration Date', name: 'expiration_date', placeholder: 'Expiration Date' },
+  ],
+};
+
+export default function Layout({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const user = useAppSelector(state => state.auth?.user);
   const managerId = user?.id || '';
 
-  const [centerFilters, setFilters] = useState<CenterFilters>({
+  const [entity, setEntity] = useState<'centers' | 'employees' | 'exits'>('centers');
+  const [filters, setFilters] = useState<CenterFilters | EmployeeFilters | ExitFilters>({
     orderBy: '',
     name: '',
     description: '',
     province: '',
     city: '',
     open: false,
+    first_name: '',
+    last_name: '',
+    type: '',
+    amount: '',
+    expiration_date: ''
   });
 
-  const [appliedCenterFilters, setAppliedFilters] = useState<CenterFilters>(centerFilters);
+  const [appliedFilters, setAppliedFilters] = useState<CenterFilters | EmployeeFilters | ExitFilters>(filters);
+  const [isMyList, setIsMyList] = useState<boolean>(false);
 
-  const { refetch: refetchCenters } = useFetchCentersQuery({
-    orderBy: appliedCenterFilters.orderBy,
-    name: appliedCenterFilters.name,
-    description: appliedCenterFilters.description,
-    province: appliedCenterFilters.province,
-    city: appliedCenterFilters.city,
-  });
+  const getParams = () => {
+    const commonParams = {
+      orderBy: appliedFilters.orderBy
+    };
 
-  const { refetch: refetchMyList } = useFetchCentersWithManagerIdQuery({
-    managerId,
-    orderBy: appliedCenterFilters.orderBy,
-    name: appliedCenterFilters.name,
-    description: appliedCenterFilters.description,
-    province: appliedCenterFilters.province,
-    city: appliedCenterFilters.city,
-  }, { skip: !managerId });
+    switch (entity) {
+      case 'centers':
+        return {
+          ...commonParams,
+          name: (appliedFilters as CenterFilters).name,
+          description: (appliedFilters as CenterFilters).description,
+          province: (appliedFilters as CenterFilters).province,
+          city: (appliedFilters as CenterFilters).city,
+          ...(isMyList && { managerId })
+        };
+      case 'employees':
+        return {
+          ...commonParams,
+          managerId,
+          first_name: (appliedFilters as EmployeeFilters).first_name,
+          last_name: (appliedFilters as EmployeeFilters).last_name,
+          type: (appliedFilters as EmployeeFilters).type
+        };
+      case 'exits':
+        return {
+          ...commonParams,
+          managerId,
+          type: (appliedFilters as ExitFilters).type,
+          amount: (appliedFilters as ExitFilters).amount,
+          expiration_date: (appliedFilters as ExitFilters).expiration_date
+        };
+      default:
+        return {};
+    }
+  };
 
-  const { refetch: refetchMyEmployees } = useFetchEmployeesWithManagerIdQuery({
-    managerId,
-    orderBy: appliedCenterFilters.orderBy,
-    name: appliedCenterFilters.name,
-    description: appliedCenterFilters.description,
-    province: appliedCenterFilters.province,
-    city: appliedCenterFilters.city,
-  }, { skip: !managerId });
+  const { refetch, isLoading, error, data } = useFetchEntities(entity, getParams());
 
-  const handleFilterChange = useCallback((newFilters: Partial<CenterFilters>) => {
+  const handleFilterChange = useCallback((newFilters: Partial<CenterFilters | EmployeeFilters | ExitFilters>) => {
     setFilters(prevFilters => ({ ...prevFilters, ...newFilters }));
   }, []);
 
   const applyFilters = useCallback(async () => {
-    await setAppliedFilters(centerFilters); // Applicare i filtri (aspettare per essere sicuri vengano applicati)
+    await setAppliedFilters(filters); // Applicare i filtri
+
+    // Resettare i dati esistenti prima di effettuare una nuova richiesta
+    switch (entity) {
+      case 'centers':
+        dispatch(clearCentersData());
+        break;
+      case 'employees':
+        dispatch(clearEmployeesData());
+        break;
+      case 'exits':
+        dispatch(clearExitsData());
+        break;
+    }
 
     try {
-      console.log('Applying filters:', appliedCenterFilters);
-
-      // Resettare i dati esistenti prima di effettuare una nuova richiesta
-      dispatch(clearCentersData());
-
-      let result;
-      if (managerId) {
-        console.log('Fetching centers with manager ID:', managerId);
-        result = await refetchMyList();
-      } else {
-        console.log('Fetching all centers');
-        result = await refetchCenters();
-        console.log(result);
-      }
-
+      const result = await refetch(); // Usa il refetch con i parametri definiti in getParams
       if (result && result.data) {
-        console.log('Fetched data:', result.data);
-        dispatch(setCentersData(result.data.centers));
-      } else {
-        console.log('No data received');
+        switch (entity) {
+          case 'centers':
+            if ('centers' in result.data) {
+              dispatch(setCentersData(result.data.centers));
+            }
+            break;
+          case 'employees':
+            if ('employees' in result.data) {
+              dispatch(setEmployeesData(result.data.employees));
+            }
+            break;
+          case 'exits':
+            if ('exits' in result.data) {
+              dispatch(setExitsData(result.data.exits));
+            }
+            break;
+        }
       }
       
       router.push('/centers');
     } catch (error) {
-      console.error('Error fetching centers:', error);
+      console.error('Error fetching entities:', error);
     }
-  }, [centerFilters, managerId, refetchCenters, refetchMyList, dispatch, router]);
+  }, [filters, refetch, dispatch, router, entity]);
 
   const menuItems: MenuItem[] = [
     { text: 'Add Center', href: '/centers/add', requiredRole: ['manager', 'admin'] },
     { text: 'My List', action: async () => {
+        await setIsMyList(true);
         if (managerId) {
           try {
-            console.log('Fetching my list with manager ID:', managerId);
-            const result = await refetchMyList();
+            const result = await refetch();
             if (result && result.data) {
-              console.log('Fetched data for my list:', result.data);
-              dispatch(setCentersData(result.data.centers));
+              switch (entity) {
+                case 'centers':
+                  if ('centers' in result.data) {
+                    dispatch(setCentersData(result.data.centers));
+                  }
+                  break;
+                case 'employees':
+                  if ('employees' in result.data) {
+                    dispatch(setEmployeesData(result.data.employees));
+                  }
+                  break;
+                case 'exits':
+                  if ('exits' in result.data) {
+                    dispatch(setExitsData(result.data.exits));
+                  }
+                  break;
+              }
               router.push('/centers');
             } else {
               console.log('No data received for my list');
@@ -124,12 +212,13 @@ export default function CentersLayout({ children }: Readonly<{ children: React.R
       requiredRole: ['trainer', 'nutritionist', 'manager', 'admin']
     },
     { text: 'All Centers', action: async () => {
+        await setIsMyList(false);
         try {
-          console.log('Fetching all centers');
-          const result = await refetchCenters();
+          const result = await refetch();
           if (result && result.data) {
-            console.log('Fetched data for all centers:', result.data);
-            dispatch(setCentersData(result.data.centers));
+            if ('centers' in result.data) {
+              dispatch(setCentersData(result.data.centers));
+            }
             router.push('/centers');
           } else {
             console.log('No data received for all centers');
@@ -140,47 +229,28 @@ export default function CentersLayout({ children }: Readonly<{ children: React.R
       },
       requiredRole: ['trainer', 'nutritionist', 'manager', 'admin']
     },
-    { text: 'Filters', action: () => setFilters(prev => ({ ...prev, open: true })),
+    { text: 'Filters', action: () => { setEntity('centers'); setFilters(prev => ({ ...prev, open: true })); },
       requiredRole: ['customer', 'trainer', 'nutritionist', 'manager', 'admin']
     },
-    { text: 'My Employees', action: async () => {
-      try {
-        console.log('Fetching all employees');
-        const result = await refetchMyEmployees();
-        if (result && result.data) {
-          console.log('Fetched data for all centers:', result.data);
-          dispatch(setCentersData(result.data.centers));
-          router.push('/centers');
-        } else {
-          console.log('No data received for all employees');
-        }
-      } catch (error) {
-        console.error('Error fetching all centers:', error);
-      }
+    { text: 'My Employees', action: () => { setEntity('employees'); setFilters(prev => ({ ...prev, open: true })); },
+      requiredRole: ['admin', 'manager']
     },
-    requiredRole: ['admin', 'manager']
-    },
-    { text: 'My Exits', action: async () => {
-        router.push('/centers/exits')
-    },
-    requiredRole: ['admin', 'manager']
-  }
+    { text: 'My Exits', action: () => { setEntity('exits'); setFilters(prev => ({ ...prev, open: true })); },
+      requiredRole: ['admin', 'manager']
+    }
   ];
 
   return (
-    
-    <div className={inter.className}>
-      <PageLayout menuItems={menuItems}>
-        {children}
-      </PageLayout>
+    <PageLayout menuItems={menuItems}>
       <FilterModal
-        isOpen={centerFilters.open}
+        isOpen={entity === 'centers' && (filters as CenterFilters).open} // Solo per 'centers'
         onClose={() => setFilters(prev => ({ ...prev, open: false }))}
-        filters={centerFilters}
+        filters={filters}
         onFilterChange={handleFilterChange}
         onApplyFilters={applyFilters}
+        filterFields={filtersFields[entity]}
       />
-    </div>
-    
+      {children}
+    </PageLayout>
   );
 }

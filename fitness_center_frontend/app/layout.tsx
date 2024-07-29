@@ -2,8 +2,8 @@ import "@/styles/globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Navbar, Footer } from "@/components/common";
-import Provider from "@/redux/provider";
 import { Setup } from "@/components/utils";
+import CustomProvider from "@/redux/provider";
 
 
 const inter = Inter({ subsets: ["latin"] });
@@ -23,12 +23,12 @@ export default function RootLayout({
      
       <body className={inter.className}>
  
-        <Provider>
+        <CustomProvider>
         <Setup />
           <Navbar />
             {children}
           <Footer />
-        </Provider>
+        </CustomProvider>
       </body>
 
     </html>

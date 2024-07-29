@@ -1,8 +1,10 @@
-from .models import Employee
+from urllib.parse import unquote
+from .models import Center, Employee
 from .serializers import ExitSerializer
 import uuid
 from .producer import KafkaProducerService
 from .utils import DateUtils
+from django.db.models import Q
 
 class EmployeeService:
     def __init__(self):
@@ -38,7 +40,15 @@ class EmployeeService:
     def get_search(self, query_params):
         employees = Employee.objects.all()
 
-        order_by = query_params.get('orderBy', '-hiring_date')
+        if query_params.get('orderBy'):
+            order_by = unquote(query_params.get('orderBy'))
+        else:
+            order_by = '-hiring_date'
+        if query_params.get('obj.manager_id') is not None:
+            centers = Center.objects.filter(manager_id=query_params.get('obj.manager_id'))
+            center_uuids = [center_uuid for center_uuid in centers.values_list(str('uuid'), flat=True)]
+            center_uuids = [str(uuid) for uuid in center_uuids]
+            employees = employees.filter(center_uuid__in=center_uuids)
         if query_params.get('obj.uuid') is not None:
             employees=employees.filter(uuid=query_params.get('obj.uuid'))
         if query_params.get('like.first_name') is not None:
@@ -76,6 +86,6 @@ class EmployeeService:
         else:
             employees=employees.filter(is_active=True)
 
-        employees = employees.all().order_by(order_by)
+        employees = employees.all().order_by(*order_by.split(','))
         
         return employees  

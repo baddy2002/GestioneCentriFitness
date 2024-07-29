@@ -16,28 +16,28 @@ interface Center {
 
 // Definisci l'interfaccia per lo stato
 interface CentersState {
-  data: Center[]; // Stato per memorizzare i dati dei centri
+  centerData: Center[]; // Stato per memorizzare i dati dei centri
 }
 
 // Stato iniziale
-const initialState: CentersState = {
-  data: [],
+const initialCentersState: CentersState = {
+  centerData: [],
 };
 
 // Crea lo slice
 const centersSlice = createSlice({
   name: 'centers',
-  initialState,
+  initialState: initialCentersState,
   reducers: {
     setCentersData(state, action: PayloadAction<Center[]>) {
-      state.data = action.payload;
+      state.centerData = action.payload;
     },
     clearCentersData(state) {
-      state.data = [];
-    },
-  },
+      state.centerData = [];
+    }
+  }
 });
 
-// Esporta i reducer e le azioni
+// Esporta le azioni e il reducer
 export const { setCentersData, clearCentersData } = centersSlice.actions;
 export default centersSlice.reducer;
