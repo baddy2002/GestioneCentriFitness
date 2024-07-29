@@ -1,4 +1,3 @@
-// components/Navbar.tsx
 'use client';
 
 import { Disclosure, DisclosureButton, DisclosurePanel } from "@headlessui/react";
@@ -8,23 +7,32 @@ import { useLogoutMutation } from "@/redux/features/authApiSlice";
 import { usePathname } from "next/navigation";
 import { logout as setLogout } from "@/redux/features/authSlices";
 import { NavLink } from '@/components/common';
-import { useUserPhotoQuery } from '@/redux/features/authApiSlice'; // Assicurati di importare la query
-
+import { useEffect, useState } from 'react';
 
 export default function Navbar() {
     const pathname = usePathname();
     const dispatch = useAppDispatch();
     const [logout] = useLogoutMutation();
+    
+    const { isAuthenticated: reduxIsAuthenticated, user } = useAppSelector(state => state.auth);
 
-    const { isAuthenticated, user } = useAppSelector(state => state.auth);  // Assuming user information is in state.auth
-    const { data: photo, isLoading: photoLoading } = useUserPhotoQuery(); // Utilizza la query per ottenere l'immagine
+    // Gestione dello stato locale
+    const [isAuthenticated, setIsAuthenticated] = useState(reduxIsAuthenticated);
+
+    useEffect(() => {
+        setIsAuthenticated(reduxIsAuthenticated);
+    }, [reduxIsAuthenticated]);
 
     const handleLogout = () => {
         logout(undefined)
             .unwrap()
             .then(() => {
                 dispatch(setLogout());
-                
+                // Rimuove il token dal localStorage o esegui altre operazioni necessarie
+                localStorage.removeItem('authToken');
+            })
+            .catch(error => {
+                console.error('Errore durante il logout:', error);
             });
     };
 
@@ -70,6 +78,9 @@ export default function Navbar() {
         </>
     );
 
+    const userPhoto = user?.photo;
+    const isPhotoValid = userPhoto && userPhoto !== 'null';
+
     return (
         <Disclosure as="nav" className="bg-gray-800">
             {({ open }) => (
@@ -106,18 +117,16 @@ export default function Navbar() {
                                         onClick={() => handleRedirect(`${process.env.NEXT_PUBLIC_SSO_FE}/dashboard`)}
                                     >
                                         {isAuthenticated ? (
-                                            !photoLoading && photo ? (
+                                            isPhotoValid ? (
                                                 <img
                                                     className="h-12 w-12 rounded-full border ml-auto"
-                                                    src={photo.photo}
+                                                    src={userPhoto}
                                                     alt="User profile"
                                                 />
                                             ) : (
-                                                
                                                 <div className="h-12 w-12 rounded-full bg-gray-500 flex items-center justify-center text-center center ml-auto text-white text-xl font-bold">
-                                                    {user?.first_name && user?.first_name !=='None' &&
-                                                    user?.last_name && user?.last_name !=='None' ? (
-                                                        
+                                                    {user?.first_name && user?.first_name !== 'None' &&
+                                                    user?.last_name && user?.last_name !== 'None' ? (
                                                         <>
                                                             {user.first_name.charAt(0)}
                                                             {user.last_name.charAt(0)}

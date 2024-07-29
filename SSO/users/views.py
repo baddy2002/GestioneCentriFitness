@@ -40,7 +40,7 @@ class CustomProviderAuthView(ProviderAuthView):
             token['groups'] = [group.name for group in user.groups.all()]
             token['full_name'] = user.first_name + user.last_name
             token['email'] = user.email
-            print(token)
+            
             access_token = jwt.encode(token, settings.SECRET_KEY)
 
             response.set_cookie(
@@ -106,7 +106,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 class CustomTokenRefreshView(TokenRefreshView):
     def post(self, request, *args, **kwargs):
         refresh_token = request.COOKIES.get('refresh')
-        print(refresh_token)
+        
         if refresh_token:
             request.data['refresh'] = refresh_token
 
@@ -150,13 +150,22 @@ class LogoutView(APIView):
     
 
 def get_direct_url(photo):
-    if(photo!=None and photo.filedata!=None):
-                    photo_url = photo.filedata.storage.url(photo.filedata.name)
-                    direct_url = 'https://drive.google.com/thumbnail?'+photo_url[
-                        photo_url.find('id=')                                                       #starindex
-                        :photo_url.find('&', photo_url.find('id='))]        #end_index(la prima & dopo startIndex)
-                    return direct_url
+    if photo is not None and photo.filedata is not None:
+        try:
+            photo_url = photo.filedata.storage.url(photo.filedata.name)
+            # Assumendo che l'URL contenga un parametro 'id' per Google Drive
+            id_start = photo_url.find('id=')
+            if id_start != -1:
+                id_end = photo_url.find('&', id_start)
+                if id_end == -1:
+                    id_end = len(photo_url)  # Prendi fino alla fine della stringa se '&' non è trovato
+                file_id = photo_url[id_start + 3:id_end]  # +3 per saltare 'id='
+                direct_url = f'https://drive.google.com/thumbnail?{photo_url[id_start:id_end]}'
+                return direct_url
+        except Exception as e:
+            print(f"Errore nel generare l'URL diretto: {e}")
     return None
+
 class InformationView(APIView):
     parser_classes = [MultiPartParser, FormParser, FileUploadParser]
     def get(self, request, viewName, *args, **kwargs):
@@ -188,7 +197,9 @@ class InformationView(APIView):
                 }
             elif viewName == 'photo':
                 photo = Photo.objects.filter(filename=user.photo).first()
+                print("photo="+str(photo))
                 direct_url=get_direct_url(photo)
+                print("url"+str(direct_url))
                 json_mapper = {
                     'photo': direct_url if direct_url is not None else None,
                 }

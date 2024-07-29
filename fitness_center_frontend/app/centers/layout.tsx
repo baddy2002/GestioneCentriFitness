@@ -8,6 +8,7 @@ import { useAppSelector, useAppDispatch } from '@/redux/hooks';
 import { MenuItem } from "@/components/common/Menu";
 import { setCentersData, clearCentersData } from '@/redux/features/centersSlices';
 import FilterModal from '@/components/common/FilterModal';
+import { RequireAuth } from '@/components/utils';
 
 interface Filters {
   orderBy: string;
@@ -135,6 +136,7 @@ export default function CentersLayout({ children }: Readonly<{ children: React.R
   ];
 
   return (
+    
     <div className={inter.className}>
       <PageLayout menuItems={menuItems}>
         {children}
@@ -147,5 +149,6 @@ export default function CentersLayout({ children }: Readonly<{ children: React.R
         onApplyFilters={applyFilters}
       />
     </div>
+    
   );
 }

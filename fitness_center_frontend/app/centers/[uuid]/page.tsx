@@ -2,31 +2,42 @@
 'use client';
 
 import React from 'react';
-import { useParams } from 'next/navigation'; // Usa useParams per ottenere i parametri della rotta
-import { useFetchCentersQuery } from '@/redux/features/centerApiSLice'; // Assicurati che il nome sia corretto
+import { useParams } from 'next/navigation';
+import { useFetchCentersQuery } from '@/redux/features/centerApiSLice';
+import Field from '@/components/common/Field';
+import { UserRole } from '@/components/common/Menu'; 
+import { useState, useEffect } from 'react';
+import { useUserGroupsQuery } from '@/redux/features/authApiSlice';
+
 
 const CenterDetails: React.FC = () => {
-  const { uuid } = useParams(); // Recupera il parametro uuid dalla rotta
-  const { data: centersData } = useFetchCentersQuery(); // Ottieni i dati dei centri
+  const { uuid } = useParams();
+  const { data: centersData } = useFetchCentersQuery();
+  const [userRoles, setUserRoles] = useState<UserRole[]>(['customer']);
+  const { data: group } = useUserGroupsQuery();
+  
+  useEffect(() => {
+    if (group) {
+      setUserRoles(group.groups);
+    }
+  }, [group]);
 
-  // Trova il centro con l'UUID corrispondente
   const center = centersData?.centers.find(c => c.uuid === uuid);
 
   if (!center) {
-    return <p>Centro non trovato</p>;
+    return <p className="p-4 text-red-500">Centro non trovato</p>;
   }
-  
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">{center.name}</h1>
-      <p><strong>Descrizione:</strong> {center.description}</p>
-      <p><strong>Manager ID:</strong> {center.manager_id}</p>
-      <p><strong>Provincia:</strong> {center.province}</p>
-      <p><strong>Città:</strong> {center.city}</p>
-      <p><strong>Via:</strong> {center.street}</p>
-      <p><strong>Numero Civico:</strong> {center.house_number}</p>
-      <p><strong>Attivo:</strong> {center.is_active ? 'Sì' : 'No'}</p>
+    <div className="p-4 bg-white shadow-lg rounded-lg max-w-2xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6 text-gray-800">{center.name}</h1>
+      <Field label="Descrizione" value={center.description} roles={userRoles} allowedRoles={['admin', 'manager']} />
+      <Field label="Manager ID" value={center.manager_id} roles={userRoles} allowedRoles={['admin']} />
+      <Field label="Provincia" value={center.province} roles={userRoles} allowedRoles={['all']} />
+      <Field label="Città" value={center.city} roles={userRoles} allowedRoles={['all']} />
+      <Field label="Via" value={center.street} roles={userRoles} allowedRoles={['all']} />
+      <Field label="Numero Civico" value={center.house_number} roles={userRoles} allowedRoles={['all']} />
+      <Field label="Attivo" value={center.is_active} roles={userRoles} allowedRoles={['admin']} />
     </div>
   );
 };

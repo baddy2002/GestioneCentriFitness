@@ -15,11 +15,11 @@ class UpdateAuthTokenMiddleware(MiddlewareMixin):
             token = cookie_token
 
         if token:
-            response = requests.post(f"{getenv('SSO_URL', 'http://localhost:8000/')}api/jwt/verify", json={"token": token}, headers={"Content-Type": "application/json"})
+            response = requests.post(f"{getenv('SSO_URL', 'http://127.0.0.1:8000/')}api/jwt/verify", json={"token": token}, headers={"Content-Type": "application/json"})
             if response.status_code != 200:
                 refresh_token = request.COOKIES.get('refresh')
                 if refresh_token:
-                    refresh_response = requests.post(f"{getenv('SSO_URL', 'http://localhost:8000/')}api/jwt/refresh", json={"refresh": refresh_token}, headers={"Content-Type": "application/json"})
+                    refresh_response = requests.post(f"{getenv('SSO_URL', 'http://127.0.0.1:8000/')}api/jwt/refresh", json={"refresh": refresh_token}, headers={"Content-Type": "application/json"})
                 
                     token = refresh_response.json().get('access')
         

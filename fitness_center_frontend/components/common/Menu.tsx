@@ -2,7 +2,7 @@
 import React from 'react';
 import Modal from 'react-modal';
 
-export type UserRole = 'admin' | 'manager' | 'nutritionist' | 'trainer' | 'customer';
+export type UserRole = 'admin' | 'manager' | 'nutritionist' | 'trainer' | 'customer' | 'all';
 
 export interface MenuItem {
   text: string;

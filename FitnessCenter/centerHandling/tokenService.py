@@ -72,7 +72,7 @@ def jwt_trainer_authetication(view):
     def wrapper(self, request, *args, **kwargs):
         @jwt_base_authetication
         def wrapped_view(self, request, *args, **kwargs):
-            access = None if request.META.get('Authorization') is None else request.META.get('Authorization') #getattr(request, 'access_token', None)
+            access = None if request.META.get('Authorization') is None else request.META.get('Authorization') 
             try:
                 payload = jwt.decode(access.encode('utf-8'), getenv('DJANGO_SSO_SECRET_KEY'), algorithms=["HS256"])
                 if 'groups' not in payload or all(group not in ['trainer', 'mixed', 'admin'] for group in payload['groups']):
