@@ -27,13 +27,13 @@ export interface Employee {
   uuid: string;
   first_name: string;
   last_name: string;
-  DOB: Date;
+  DOB: string;
   salary: number;
   fiscalCode: string;
   email: string;
   type: string;
-  hiring_date: Date;
-  end_contract_date: Date;
+  hiring_date: string;
+  end_contract_date: string | null;
   attachments_uuid: string;
   center_uuid: string;
   is_active: boolean;
@@ -52,11 +52,11 @@ export interface Exit {
   uuid: string;
   amount: number;
   type: string;
-  employee_uuid: string;
+  employee_uuid: string | null;
   frequency: number;
   description: string;
-  start_date: Date;
-  expiration_date: Date;
+  start_date: string;
+  expiration_date: string | null;
   center_uuid: string;
   is_active: boolean;
 }
@@ -161,6 +161,20 @@ const centersApiSlice = centerApiSlice.injectEndpoints({
         body: newCenter,
       }),
     }),
+    addExit: builder.mutation<void, Omit<Exit, 'uuid' | 'is_active'>>({
+      query: (newCenter) => ({
+        url: '/exits/',
+        method: 'POST',
+        body: newCenter,
+      }),
+    }),
+    addEmployee: builder.mutation<void, Omit<Employee, 'uuid' | 'is_active'>>({
+      query: (newCenter) => ({
+        url: '/employees/',
+        method: 'POST',
+        body: newCenter,
+      }),
+    }),
   }),
 });
 
@@ -169,6 +183,8 @@ export const {
   useFetchCentersQuery,
   useFetchCentersWithManagerIdQuery,
   useAddCenterMutation,
+  useAddEmployeeMutation,
+  useAddExitMutation,
   useFetchEmployeesWithManagerIdQuery,
   useFetchExitsWithManagerIdQuery,
 } = centersApiSlice;

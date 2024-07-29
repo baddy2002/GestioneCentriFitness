@@ -6,11 +6,11 @@ interface Exit {
   uuid: string;
   amount: number;
   type: string;
-  employee_uuid: string;
+  employee_uuid: string | null;
   frequency: number;
   description: string;
-  start_date: Date;
-  expiration_date: Date;
+  start_date: string;
+  expiration_date: string | null;
   center_uuid: string;
   is_active: boolean;
 }

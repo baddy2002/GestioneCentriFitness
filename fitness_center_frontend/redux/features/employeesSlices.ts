@@ -6,13 +6,13 @@ interface Employee {
   uuid: string;
   first_name: string;
   last_name: string;
-  DOB: Date;
+  DOB: string;
   salary: number;
   fiscalCode: string;
   email: string;
   type: string;
-  hiring_date: Date;
-  end_contract_date: Date;
+  hiring_date: string;
+  end_contract_date: string | null;
   attachments_uuid: string;
   center_uuid: string;
   is_active: boolean;

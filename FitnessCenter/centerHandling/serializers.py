@@ -6,6 +6,8 @@ from django.utils import timezone
 import requests
 
 class EmployeeSerializer(serializers.ModelSerializer):
+    attachments_uuid = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    end_contract_date = serializers.DateField(required=False, allow_null=True)
     class Meta:
         model = Employee
         fields = ['uuid', 'first_name', 'email', 'last_name', 'DOB', 'salary','fiscalCode', 'type', 'center_uuid', 'hiring_date', 'end_contract_date', 'attachments_uuid', 'is_active']
@@ -54,6 +56,8 @@ class EmployeeSerializer(serializers.ModelSerializer):
         return data
 
 class ExitSerializer(serializers.ModelSerializer):
+    employee_uuid = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    expiration_date = serializers.DateField(required=False, allow_null=True)
     class Meta:
         model = Exit
         fields = ['uuid', 'amount', 'type', 'description', 'frequency', 'center_uuid', 'employee_uuid', 'start_date', 'expiration_date', 'is_active']
