@@ -54,14 +54,14 @@ export default function Navbar() {
             <NavLink
                 isSelected={isSelected('/auth/login')}
                 isMobile={isMobile}
-                href="/auth/login"
+                onClick={() => handleRedirect(`${process.env.NEXT_PUBLIC_SSO_FE}/auth/login`)}
             >
                 Login
             </NavLink>
             <NavLink
                 isSelected={isSelected('/auth/register')}
                 isMobile={isMobile}
-                href="/auth/register"
+                onClick={() => handleRedirect(`${process.env.NEXT_PUBLIC_SSO_FE}/auth/register`)}
             >
                 Register
             </NavLink>
@@ -87,7 +87,7 @@ export default function Navbar() {
                             </div>
                             <div className="flex flex-1 items-center justify-between sm:items-stretch sm:justify-start">
                                 <div className="flex flex-shrink-0 items-center">
-                                    <NavLink href="/">
+                                    <NavLink onClick={() => handleRedirect(`${process.env.NEXT_PUBLIC_SSO_FE}/`)}>
                                         <img
                                             className="h-12 w-12 rounded-full border"
                                             src="https://drive.google.com/thumbnail?id=1CJaUldQhiZAnplWB7WTFb3AeBk3uGj2F"
