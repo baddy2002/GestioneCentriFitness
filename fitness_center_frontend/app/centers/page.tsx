@@ -4,6 +4,8 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
 import Link from 'next/link';
 import { Employee, Center, Exit } from '@/redux/features/centerApiSLice';
+import { usePathname } from 'next/navigation'
+
 
 const Page: React.FC = () => {
   // Ottieni i dati e l'entità selezionata dallo stato globale
@@ -44,14 +46,14 @@ const Page: React.FC = () => {
         <ul>
           {data.map(item => {
             let linkHref = '';
-
+            const pathname = usePathname();
             // Costruisci l'URL in base all'entità selezionata
             if (selectedEntity === 'centers') {
-              linkHref = `/${selectedEntity}/${item.uuid}`;
+              linkHref = `/${selectedEntity}/${item.uuid}?from=${encodeURIComponent(pathname)}`;
             } else if (selectedEntity === 'employees') {
-              linkHref = `/centers/${(item as Employee).center_uuid}/${selectedEntity}/${item.uuid}`;
+              linkHref = `/centers/${(item as Employee).center_uuid}/${selectedEntity}/${item.uuid}?from=${encodeURIComponent(pathname)}`;
             } else if (selectedEntity === 'exits') {
-              linkHref = `/centers/${(item as Exit).center_uuid}/${selectedEntity}/${item.uuid}`;
+              linkHref = `/centers/${(item as Exit).center_uuid}/${selectedEntity}/${item.uuid}?from=${encodeURIComponent(pathname)}`;
             }
 
             return (
