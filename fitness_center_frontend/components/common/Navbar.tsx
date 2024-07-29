@@ -29,7 +29,7 @@ export default function Navbar() {
             .then(() => {
                 dispatch(setLogout());
                 // Rimuove il token dal localStorage o esegui altre operazioni necessarie
-                localStorage.removeItem('authToken');
+                window.location.reload();
             })
             .catch(error => {
                 console.error('Errore durante il logout:', error);

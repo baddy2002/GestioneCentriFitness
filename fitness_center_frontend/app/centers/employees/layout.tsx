@@ -27,7 +27,7 @@ export default function CentersLayout({ children }: Readonly<{ children: React.R
   const user = useAppSelector(state => state.auth?.user);
   const managerId = user?.id || '';
 
-  const [centerFilters, setFilters] = useState<CenterFilters>({
+  const [filters, setFilters] = useState<CenterFilters>({
     orderBy: '',
     name: '',
     description: '',
@@ -36,32 +36,32 @@ export default function CentersLayout({ children }: Readonly<{ children: React.R
     open: false,
   });
 
-  const [appliedCenterFilters, setAppliedFilters] = useState<CenterFilters>(centerFilters);
+  const [appliedFilters, setAppliedFilters] = useState<CenterFilters>(filters);
 
   const { refetch: refetchCenters } = useFetchCentersQuery({
-    orderBy: appliedCenterFilters.orderBy,
-    name: appliedCenterFilters.name,
-    description: appliedCenterFilters.description,
-    province: appliedCenterFilters.province,
-    city: appliedCenterFilters.city,
+    orderBy: appliedFilters.orderBy,
+    name: appliedFilters.name,
+    description: appliedFilters.description,
+    province: appliedFilters.province,
+    city: appliedFilters.city,
   });
 
   const { refetch: refetchMyList } = useFetchCentersWithManagerIdQuery({
     managerId,
-    orderBy: appliedCenterFilters.orderBy,
-    name: appliedCenterFilters.name,
-    description: appliedCenterFilters.description,
-    province: appliedCenterFilters.province,
-    city: appliedCenterFilters.city,
+    orderBy: appliedFilters.orderBy,
+    name: appliedFilters.name,
+    description: appliedFilters.description,
+    province: appliedFilters.province,
+    city: appliedFilters.city,
   }, { skip: !managerId });
 
   const { refetch: refetchMyEmployees } = useFetchEmployeesWithManagerIdQuery({
     managerId,
-    orderBy: appliedCenterFilters.orderBy,
-    name: appliedCenterFilters.name,
-    description: appliedCenterFilters.description,
-    province: appliedCenterFilters.province,
-    city: appliedCenterFilters.city,
+    orderBy: appliedFilters.orderBy,
+    name: appliedFilters.name,
+    description: appliedFilters.description,
+    province: appliedFilters.province,
+    city: appliedFilters.city,
   }, { skip: !managerId });
 
   const handleFilterChange = useCallback((newFilters: Partial<CenterFilters>) => {
@@ -69,10 +69,10 @@ export default function CentersLayout({ children }: Readonly<{ children: React.R
   }, []);
 
   const applyFilters = useCallback(async () => {
-    await setAppliedFilters(centerFilters); // Applicare i filtri (aspettare per essere sicuri vengano applicati)
+    await setAppliedFilters(filters); // Applicare i filtri (aspettare per essere sicuri vengano applicati)
 
     try {
-      console.log('Applying filters:', appliedCenterFilters);
+      console.log('Applying filters:', appliedFilters);
 
       // Resettare i dati esistenti prima di effettuare una nuova richiesta
       dispatch(clearCentersData());
@@ -98,10 +98,9 @@ export default function CentersLayout({ children }: Readonly<{ children: React.R
     } catch (error) {
       console.error('Error fetching centers:', error);
     }
-  }, [centerFilters, managerId, refetchCenters, refetchMyList, dispatch, router]);
+  }, [filters, managerId, refetchCenters, refetchMyList, dispatch, router]);
 
   const menuItems: MenuItem[] = [
-    { text: 'Add Center', href: '/centers/add', requiredRole: ['manager', 'admin'] },
     { text: 'My List', action: async () => {
         if (managerId) {
           try {
@@ -145,14 +144,14 @@ export default function CentersLayout({ children }: Readonly<{ children: React.R
     },
     { text: 'My Employees', action: async () => {
       try {
-        console.log('Fetching all employees');
+        console.log('Fetching all centers');
         const result = await refetchMyEmployees();
         if (result && result.data) {
           console.log('Fetched data for all centers:', result.data);
           dispatch(setCentersData(result.data.centers));
           router.push('/centers');
         } else {
-          console.log('No data received for all employees');
+          console.log('No data received for all centers');
         }
       } catch (error) {
         console.error('Error fetching all centers:', error);
@@ -174,9 +173,9 @@ export default function CentersLayout({ children }: Readonly<{ children: React.R
         {children}
       </PageLayout>
       <FilterModal
-        isOpen={centerFilters.open}
+        isOpen={filters.open}
         onClose={() => setFilters(prev => ({ ...prev, open: false }))}
-        filters={centerFilters}
+        filters={filters}
         onFilterChange={handleFilterChange}
         onApplyFilters={applyFilters}
       />

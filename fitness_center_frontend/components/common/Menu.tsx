@@ -23,6 +23,9 @@ const Menu: React.FC<Props> = ({ roles, menuItems }) => {
     if (roles.includes('admin')) {
       return true;
     }
+    if (item.requiredRole && item.requiredRole.includes('all')) {
+      return true;
+    }
     if (item.requiredRole) {
       return item.requiredRole.some(role => roles.includes(role));
     }
