@@ -34,14 +34,17 @@ export default function useLogin() {
         await login({ email, password }).unwrap();
         
         // Effettua la chiamata per ottenere i dettagli completi dell'utente
-        await fetchUserComplete();
-        if (user) {
+      const response = await fetchUserComplete();
+      const user = response?.data;
+      console.log("DEBUG: User = " + user);
+      if (user) {
           const loggedUser = {
               id: user.id,
               first_name: user.first_name,
               last_name: user.last_name,
               email: user.email,
               data_iscrizione: user.data_iscrizione,
+              group: user.group,
               photo: user.photo,
           };
           console.log(loggedUser);
@@ -54,7 +57,7 @@ export default function useLogin() {
           throw new Error('User data not found');
       }
   } catch (error) {
-      toast.error('Failed to log in');
+      toast.error('Failed to log in' + error);
   }
     }
   return { email, password, isLoading, onChange, onSubmit};

@@ -167,6 +167,8 @@ class EmployeeAPITestCase(AuthenticatedAPITestCase):
             "province": 
                 "RE"
             ,
+            'hour_nutritionist_price': 20,
+            'hour_trainer_price': 30,
             "city": 
                 "Viano"
             ,
@@ -585,11 +587,14 @@ class CenterAPITestCase(AuthenticatedAPITestCase):
         self.assertIn('city', response_data)
         self.assertIn('street', response_data)
         self.assertIn('house_number', response_data)
+        self.assertIn('hour_nutritionist_price', response_data)
+        self.assertIn('hour_trainer_price', response_data)
         self.assertEqual(response_data['name'], ['This field is required.'])
         self.assertEqual(response_data['city'], ['This field is required.'])
         self.assertEqual(response_data['street'], ['This field is required.'])
         self.assertEqual(response_data['house_number'], ['This field is required.'])
-
+        self.assertEqual(response_data['hour_nutritionist_price'], ['This field is required.'])
+        self.assertEqual(response_data['hour_trainer_price'], ['This field is required.'])
 
     def test_post_invalid_province_and_house(self):         #assicura che non venga persistito se la provincia non è nel formato corretto
                                                             # e se il numero civico non è un intero positivo
@@ -599,6 +604,8 @@ class CenterAPITestCase(AuthenticatedAPITestCase):
             "name": "test",
             "manager_id": "test",
             "province": "test",
+            'hour_nutritionist_price': 20,
+            'hour_trainer_price': 30,
             "city": "test",
             "street": "test",
             "house_number": "test"
@@ -621,6 +628,8 @@ class CenterAPITestCase(AuthenticatedAPITestCase):
             "name": "test",
             "manager_id": "test",
             "province": "RE",
+            'hour_nutritionist_price': 20,
+            'hour_trainer_price': 30,
             "city": "Viano",
             "street": "Via Roma",
             "house_number": 1

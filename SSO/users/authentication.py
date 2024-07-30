@@ -9,7 +9,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
         # Aggiungi gruppi al token
         token['groups'] =  [group.name for group in user.groups.all()] 
-        token['full_name'] = user.first_name + user.last_name
+        token['full_name'] = str(user.first_name) + str(user.last_name)
         token['email'] = user.email
         
         return token

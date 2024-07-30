@@ -133,6 +133,8 @@ class CenterSerializer(serializers.ModelSerializer):
             'manager_id',
             'province',
             'city',
+            'hour_nutritionist_price',
+            'hour_trainer_price',
             'street',
             'house_number',
             'is_active',

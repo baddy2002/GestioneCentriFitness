@@ -5,6 +5,7 @@ import { useVerifyMutation, useRetrieveUserCompleteQuery } from '@/redux/feature
 import { setAuth, finishInitialLoad } from '@/redux/features/authSlices';
 import { useAppDispatch } from '@/redux/hooks';
 import { toast } from 'react-toastify';
+
 export default function useVerify() {
     const dispatch = useAppDispatch();
     const { data: user, refetch: fetchUserComplete } = useRetrieveUserCompleteQuery();
@@ -16,7 +17,8 @@ export default function useVerify() {
         verify()
             .unwrap()
             .then(async () => {
-                await fetchUserComplete();
+                const response = await fetchUserComplete();
+                const user = response?.data
                 if (user) {
                     const loggedUser = {
                         id: user.id,

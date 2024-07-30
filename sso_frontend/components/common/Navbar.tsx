@@ -7,11 +7,13 @@ import { useLogoutMutation } from "@/redux/features/authApiSlice";
 import { usePathname } from "next/navigation";
 import { logout as setLogout } from "@/redux/features/authSlices";
 import { NavLink } from '@/components/common';
+import { useRouter } from "next/navigation";
 
 export default function Navbar() {
     const pathname = usePathname();
     const dispatch = useAppDispatch();
     const [logout] = useLogoutMutation();
+    const router = useRouter();
 
     const { isAuthenticated, user } = useAppSelector(state => state.auth);  // Assuming user information is in state.auth
     const handleLogout = () => {
@@ -19,7 +21,10 @@ export default function Navbar() {
             .unwrap()
             .then(() => {
                 dispatch(setLogout());
-            });
+            })
+            .finally(() => {
+                router.push(`/`)
+            })
     };
 
     const isSelected = (path: string) => pathname === path;
