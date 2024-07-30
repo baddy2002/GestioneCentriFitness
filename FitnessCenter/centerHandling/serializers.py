@@ -1,8 +1,13 @@
 # serializers.py
+from .tokenService import get_principal
 from rest_framework import serializers
-from .models import Employee, Exit, Center, Review
+from django.core.exceptions import ValidationError
+from .models import Employee, EmployeeBusyTrace, Exit, Center, Prenotation, Review
 import re
+import uuid
+from django.db import models
 from django.utils import timezone
+import datetime
 import requests
 
 class EmployeeSerializer(serializers.ModelSerializer):
@@ -177,3 +182,117 @@ class ReviewSerializer(serializers.ModelSerializer):
     def validate(self, data):
         #TODO: implementare filtri per contenuti dannosi
         return data
+    
+
+class PrenotationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Prenotation
+        fields = '__all__'
+
+    def validate(self, data):
+        # Get the request object to access headers
+        request = self.context.get('request')
+        if not request:
+            raise ValidationError('Request object is missing.')
+
+        # 0. Required fields validation
+        for field in ['user_id', 'center_uuid', 'from_hour', 'to_hour', 'type']:
+            if not data.get(field):
+                raise ValidationError(f'{field} cannot be null.')
+
+        # 1. Validate employee
+        employee_uuid = data.get('employee_uuid')
+        if employee_uuid:
+            employee = Employee.objects.filter(uuid=uuid.UUID(employee_uuid)).first()
+            if not employee or not employee.is_active:
+                raise ValidationError('Invalid or inactive employee.')
+
+            if employee.type != data.get('type'):
+                raise ValidationError('Employee type does not match the prenotation type.')
+
+        # 2. Validate center
+        center_uuid = data.get('center_uuid')
+        if center_uuid:
+            center = Center.objects.filter(uuid=uuid.UUID(center_uuid)).first()
+            if not center or not center.is_active:
+                raise ValidationError('Invalid or inactive center.')
+
+        # 3. Validate user ID from token
+        token = request.headers.get('Authorization')
+        if token:
+            # Here you need to implement your token parsing logic.
+            # This is a placeholder, replace it with actual token parsing.
+            user_id_from_token = get_principal(token)
+            if user_id_from_token != data.get('user_id'):
+                raise ValidationError('User ID in token does not match the user ID in prenotation.')
+
+        # 4. Validate from_hour
+        now = timezone.now()
+        if data['from_hour'] <= now + datetime.timedelta(days=1):
+            raise ValidationError('from_hour must be at least 1 day from now.')
+
+        if data['from_hour'].minute % 30 != 0:
+            raise ValidationError('from_hour must be on the half-hour.')
+
+        # 5. Validate to_hour
+        if data['to_hour'] <= data['from_hour'] + datetime.timedelta(minutes=30):
+            raise ValidationError('to_hour must be at least 30 minutes later than from_hour.')
+
+        if data['to_hour'] >= data['from_hour'] + datetime.timedelta(minutes=150):
+            raise ValidationError('the visite cannot last for more than 2h 30 minutes.')
+
+        if data['to_hour'].minute % 30 != 0:
+            raise ValidationError('to_hour must be on the half-hour.')
+
+        # 6. Check availability
+        if employee_uuid:
+            if not self.is_employee_available(employee_uuid, data['from_hour'], data['to_hour']):
+                raise ValidationError('Employee is not available during the selected time.')
+
+        elif center_uuid:
+            available_employee = self.find_best_employee(center_uuid, data['type'], data['from_hour'], data['to_hour'])
+            if available_employee:
+                data['employee_uuid'] = available_employee.uuid
+                data['total'] = self.calculate_total_price(data['type'], data['from_hour'], data['to_hour'], center_uuid)
+                data['status'] = 'confirmed'
+            else:
+                raise ValidationError('No available employees for the center.')
+
+        return data
+
+    def is_employee_available(self, employee_uuid, from_hour, to_hour):
+        overlapping_prenotations = Prenotation.objects.filter(
+            employee_uuid=employee_uuid,
+            from_hour__lt=to_hour,
+            to_hour__gt=from_hour
+        ).exists()
+        return not overlapping_prenotations
+
+    def find_best_employee(self, center_uuid, type, from_hour, to_hour):
+        employees = Employee.objects.filter(center_uuid=center_uuid, type=type, is_active=True)
+        best_employee = None
+        min_busy_hours = float('inf')
+        
+        busy_traces = EmployeeBusyTrace.objects.filter(
+            employee_uuid__in=employees.values_list('uuid', flat=True)).values('employee_uuid', 'prenotation_hours')
+        busy_hours_map = {trace['employee_uuid']: trace['prenotation_hours'] for trace in busy_traces}
+        
+        for employee in employees:
+            if self.is_employee_available(employee.uuid, from_hour, to_hour):
+                busy_hours = busy_hours_map.get(employee.uuid, 0)
+                if busy_hours < min_busy_hours:
+                    min_busy_hours = busy_hours
+                    best_employee = employee
+        return best_employee
+
+    def calculate_total_price(self, type, from_hour, to_hour, center_uuid):
+        center = Center.objects.filter(uuid=uuid.UUID(center_uuid)).first()
+        if not center:
+            raise ValidationError('Invalid center.')
+        duration_hours = (to_hour - from_hour).total_seconds() / 3600
+        if type == 'nutritionist':
+            return center.hour_nutritionist_price * duration_hours
+        elif type == 'trainer':
+            return center.hour_trainer_price * duration_hours
+        else:
+            raise ValidationError('Invalid prenotation type.')

@@ -88,6 +88,8 @@ class Center(models.Model):
     city = models.CharField(max_length=100)
     street = models.CharField(max_length=100)
     house_number = models.PositiveIntegerField()
+    hour_nutritionist_price = models.DecimalField(max_digits=10, decimal_places=2)
+    hour_trainer_price = models.DecimalField(max_digits=10, decimal_places=2)
     is_active = models.BooleanField(default=True, null=False)
 
     def __str__(self):
@@ -104,7 +106,7 @@ class Review(models.Model):
     text = models.TextField()
     score = models.IntegerField(choices=[(i, i) for i in range(1, 6)])  # Score da 1 a 5
     user_id = models.CharField()
-    center_uuid = models.CharField(max_length=36)
+    center_uuid = models.CharField(max_length=255)
     exec_time = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True, null=False)
 
@@ -120,3 +122,33 @@ class Review(models.Model):
         self.uuid = map.get('uuid')
         self.text = map.get('text')
         self.score = None if map.get('score') is None else int(map.get('score'))
+
+
+class Prenotation(models.Model):
+    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user_id = models.CharField(max_length=255)
+    user_email = models.EmailField(max_length=255)
+    employee_uuid = models.CharField(max_length=255)
+    center_uuid = models.CharField(max_length=255)
+    exec_time = models.DateTimeField(auto_now_add=True)
+    from_hour =  models.DateTimeField()
+    to_hour =  models.DateTimeField()
+    total =  models.DecimalField(max_digits=10, decimal_places=2)
+    TYPES_CHOISES = [
+        ('trainer', 'trainer'),
+        ('nutritionist', 'nutritionist'),
+    ]
+    type = models.CharField(max_length=16, choices=TYPES_CHOISES, null=False)
+    STATUS_CHOICES = [
+        ('pending', 'pending'),
+        ('confirmed', 'confirmed'),
+        ('cancelled', 'cancelled'),
+        ('completed', 'completed'),
+    ]
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+
+class EmployeeBusyTrace(models.Model):
+    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)   
+    employee_uuid = models.CharField(max_length=255)
+    prenotation_hours = models.DecimalField(max_digits=3, decimal_places=1)
+    date = models.DateField(auto_now_add=True)

@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from dateutil import parser
 import re
 
@@ -30,3 +30,25 @@ class DateUtils():
             return dt
         else:
             raise ValueError("Date format is not supported")
+        
+    import datetime
+
+    def generate_slots(start_time, end_time):
+        # Converti start_time e end_time in datetime.datetime per la manipolazione
+        now = datetime.now()
+        start_datetime = datetime.combine(now.today(), start_time)
+        end_datetime = datetime.combine(now.today(), end_time)
+
+        # Crea una lista per gli intervalli di mezz'ora
+        slots = []
+
+
+        current_time = start_datetime
+        while current_time < end_datetime:
+            next_time = current_time + timedelta(minutes=30)
+            slots.append((current_time.time(), next_time.time()))
+            current_time = next_time
+        print(slots)
+        return slots
+
+

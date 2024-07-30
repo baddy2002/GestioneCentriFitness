@@ -1,3 +1,5 @@
+from django.utils import timezone
+import datetime
 from os import getenv
 from django.http import JsonResponse
 import json
@@ -6,8 +8,8 @@ from rest_framework.views import APIView
 from django.core.exceptions import FieldError
 from .utils import DateUtils
 from .services import EmployeeService
-from .models import ( Employee, Exit, Center, Review)
-from .serializers import (EmployeeSerializer, ExitSerializer, CenterSerializer, ReviewSerializer)
+from .models import ( Employee, Exit, Center, Prenotation, Review)
+from .serializers import (EmployeeSerializer, ExitSerializer, CenterSerializer, PrenotationSerializer, ReviewSerializer)
 from django.db import IntegrityError, DatabaseError, OperationalError
 from django.core.exceptions import ValidationError
 import jwt
@@ -402,8 +404,7 @@ class CenterView(APIView):
         except Exception as e:
             return JsonResponse({"error": "An unexpected error occurred: " + str(e)}, status=500)
 
-
-
+    
 #<======================================= Review ================================================>
 class ReviewView(APIView):
     def get_search(self, query_params):
@@ -496,3 +497,170 @@ class ReviewView(APIView):
             return JsonResponse(serializer.errors, status=400)
         else:
             return JsonResponse({"error": "uuid must be the same."}, status=400)
+        
+
+class PrenotationView(APIView):
+    def get_search(self, query_params):
+        prenotations = Prenotation.objects.all()
+
+        order_by = query_params.get('orderBy')
+        if order_by:
+            order_by = unquote(order_by)
+        else:
+            order_by = 'exec_time'
+        
+        # Filtri basati su query parameters
+        if query_params.get('obj.uuid') is not None:
+            prenotations = prenotations.filter(uuid=query_params.get('obj.uuid'))
+        
+        if query_params.get('obj.user_id') is not None:
+            prenotations = prenotations.filter(user_id=query_params.get('obj.user_id'))
+        
+        if query_params.get('obj.center_uuid') is not None:
+            prenotations = prenotations.filter(center_uuid=query_params.get('obj.center_uuid'))
+        
+        if query_params.get('obj.employee_uuid') is not None:
+            prenotations = prenotations.filter(employee_uuid=query_params.get('obj.employee_uuid'))
+        
+        if query_params.get('obj.type') is not None:
+            prenotations = prenotations.filter(type=query_params.get('obj.type'))
+        
+        if query_params.get('obj.status') is not None:
+            prenotations = prenotations.filter(status=query_params.get('obj.status'))
+        
+        # Filtri basati su intervalli di date e ore
+        if query_params.get('from.from_hour') is not None:
+            from_hour = query_params.get('from.from_hour')
+            prenotations = prenotations.filter(from_hour__gte=from_hour)
+        
+        if query_params.get('from.to_hour') is not None:
+            to_hour = query_params.get('from.to_hour')
+            prenotations = prenotations.filter(to_hour__lte=to_hour)
+        
+        if query_params.get('obj.exec_time') is not None:
+            exec_time = query_params.get('obj.exec_time')
+            prenotations = prenotations.filter(exec_time__date=exec_time)
+
+        # Applicazione dell'ordinamento
+        prenotations = prenotations.order_by(*order_by.split(','))
+        
+        return prenotations
+
+    @jwt_base_authetication
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            data['user_id'] = get_principal(request.headers.get('Authorization'))
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+        except ValueError:
+            return JsonResponse({"error": "Invalid token"}, status=400)
+
+        serializer = PrenotationSerializer(data=data, context={'request': request})
+        if serializer.is_valid():
+            prenotation = serializer.save()
+            return JsonResponse(serializer.data, status=201)
+        return JsonResponse(serializer.errors, status=400)
+    
+    @jwt_base_authetication
+    def get(self, request, uuid=None):
+        if uuid:
+            try:
+                prenotation = get_object_or_404(Prenotation, uuid=uuid)
+                prenotation_data = PrenotationSerializer(prenotation).data
+                return JsonResponse({"prenotation": prenotation_data})
+            except ValidationError:
+                return JsonResponse({"error": "Invalid UUID format"}, status=400)
+        else:
+            try:
+                prenotations = self.get_search(request.GET)
+                list_size = prenotations.count()
+                start_row = int(request.GET.get('startRow', 0))
+                page_size = int(request.GET.get('pageSize', 10))
+
+                if page_size < 0:
+                    raise ValueError("The pageSize cannot be negative.")
+                if start_row < 0:
+                    raise ValueError("The startRow cannot be negative.")
+                if start_row > list_size:
+                    return JsonResponse({"prenotations": None}, headers={"List-Size": str(list_size)})
+
+                paginated_prenotations = prenotations[start_row:start_row + page_size]
+                prenotations_list = PrenotationSerializer(paginated_prenotations, many=True).data
+                return JsonResponse({"prenotations": prenotations_list}, headers={"List-Size": str(list_size)})
+
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=400)
+            except FieldError:
+                return JsonResponse({"error": "Invalid orderBy parameter"}, status=400)
+            
+    @jwt_base_authetication
+    def put(self, request, uuid):
+        try:
+            prenotation = get_object_or_404(Prenotation, uuid=uuid)
+            user_uuid = get_principal(request)
+            
+            # Verifica che l'utente sia il proprietario della prenotazione
+            if prenotation.user_id != user_uuid:
+                return JsonResponse({"error": "Forbidden: the user that modified the prenotation is not the author"}, status=403)
+            
+            # Carica i dati dalla richiesta
+            data = json.loads(request.body)
+            
+            # Verifica che l'UUID passato nella URL corrisponda a quello dei dati
+            if uuid == str(data.get('uuid')):
+                serializer = PrenotationSerializer(prenotation, data=data, partial=True)
+                if serializer.is_valid():
+                    serializer.save()
+                    return JsonResponse(serializer.data, status=200)
+                return JsonResponse(serializer.errors, status=400)
+            else:
+                return JsonResponse({"error": "UUID must be the same as in the URL."}, status=400)
+        
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+        except ValidationError:
+            return JsonResponse({"error": "Invalid UUID format"}, status=400)
+        
+
+class AvailabilityView(APIView):
+    @jwt_base_authetication
+    def get(self, request, type, date, center_uuid, employee_uuid=None):
+        print('::::::::::.availability:::::::::::::::::::::..')
+        min_date = timezone.now() + datetime.timedelta(days=1)
+        available_slots = DateUtils.generate_slots(datetime.time(8, 0), datetime.time(18, 0))
+
+
+        center = get_object_or_404(Center, uuid=center_uuid)
+        
+        prenotations = Prenotation.objects.filter(
+            center_uuid=center_uuid,
+            from_hour__gt = min_date,
+            to_hour__lt = DateUtils.parse_string_to_date(date)+datetime.timedelta(days=1)
+        )
+        # Get employees of the center
+        if(employee_uuid is None):
+            employees = Employee.objects.filter(center_uuid=center_uuid, is_active=True, type=type)     #trovo dipendenti del centro con stesso tipo
+            employees_uuids = [str(uuid) for uuid in employees.values_list('uuid', flat=True)]
+            prenotations = prenotations.filter(employee_uuid__in=employees_uuids)
+            
+        else:
+            employee =get_object_or_404(Employee, uuid=employee_uuid)
+            prenotations = prenotations.filter(employee_uuid=str(employee.uuid))
+
+        busy_hours_map = {
+    prenotation.from_hour: prenotation.to_hour
+    for prenotation in prenotations
+}
+        print(busy_hours_map)
+        available = []
+        for start, end in available_slots:                          #per ogni fascia
+            is_available = True
+            for busy_start, busy_end in busy_hours_map.items():     #per ogni fascia occupata
+                if not (end <= busy_start or start >= busy_end):    # se la fascia finisce dopo l'inizio di una p.  
+                    is_available = False                            #e comincia prima che sia finita allora non la mostro
+                    break
+            if is_available:
+                available.append((start, end))
+
+        return JsonResponse({"availability": available_slots}, status=200)

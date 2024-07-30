@@ -16,7 +16,7 @@ export interface Center {
 
 interface FetchCentersParams {
   managerId?: string;
-  orderBy?: string; // Es. 'name,-province'
+  orderBy?: string; 
   name?: string;
   description?: string;
   province?: string;
@@ -41,7 +41,7 @@ export interface Employee {
 
 interface FetchEmployeesParams {
   managerId?: string;
-  orderBy?: string; // Es. 'name,-province'
+  orderBy?: string; 
   name?: string;
   description?: string;
   province?: string;
@@ -63,7 +63,7 @@ export interface Exit {
 
 interface FetchExitsParams {
   managerId?: string;
-  orderBy?: string; // Es. 'name,-province'
+  orderBy?: string; 
   name?: string;
   description?: string;
   province?: string;

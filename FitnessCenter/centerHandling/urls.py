@@ -4,7 +4,7 @@ from django.urls import path, include
 from .views import ( 
     EmployeeView, show_employee_exits,
     ExitView,
-    CenterView, ReviewView
+    CenterView, ReviewView, PrenotationView, AvailabilityView
 )
 urlpatterns = [
     #----------------------employee-----------------------------------
@@ -17,6 +17,15 @@ urlpatterns = [
     #----------------------Center--------------------------------------
     path('centers/', CenterView.as_view(), name='center-views'),
     path('centers/<str:uuid>', CenterView.as_view()),
+
     path('centers/reviews/<str:center_uuid>', ReviewView.as_view(), name='review-views'),
     path('centers/reviews/<str:center_uuid>/<str:uuid>', ReviewView.as_view(), name='add-review'),
+
+    #-----------------------Prenotation-----------------------------------
+
+    path('prenotations/', PrenotationView.as_view(), name='prenotation-views'),
+    path('prenotations/<str:uuid>', PrenotationView.as_view(), name='prenotation-detail-view'),
+    path('availability/<str:type>/<str:date>/<str:center_uuid>', AvailabilityView.as_view()),
+    path('availability/<str:type>/<str:date>/<str:center_uuid>/str<str:employee_uuid>', AvailabilityView.as_view()),
+
 ]
