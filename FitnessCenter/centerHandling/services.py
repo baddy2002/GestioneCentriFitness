@@ -1,5 +1,5 @@
 from urllib.parse import unquote
-from .models import Center, Employee
+from .models import Center, Employee, EmployeeBusyTrace
 from .serializers import ExitSerializer
 import uuid
 from .producer import KafkaProducerService
@@ -89,3 +89,4 @@ class EmployeeService:
         employees = employees.all().order_by(*order_by.split(','))
         
         return employees  
+    

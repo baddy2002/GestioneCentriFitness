@@ -138,3 +138,9 @@ def get_principal(request):
     payload = jwt.decode(token.encode('utf-8'), getenv('DJANGO_SSO_SECRET_KEY'), algorithms=["HS256"])
     user_uuid = payload.get('user_id')
     return user_uuid
+
+def get_token_email(request):
+    token = get_token(request)
+    payload = jwt.decode(token.encode('utf-8'), getenv('DJANGO_SSO_SECRET_KEY'), algorithms=["HS256"])
+    user_uuid = payload.get('email')
+    return user_uuid

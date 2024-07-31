@@ -1,5 +1,6 @@
 # serializers.py
-from .tokenService import get_principal
+from .utils import DateUtils
+from .tokenService import get_principal, get_token_email
 from rest_framework import serializers
 from django.core.exceptions import ValidationError
 from .models import Employee, EmployeeBusyTrace, Exit, Center, Prenotation, Review
@@ -9,7 +10,6 @@ from django.db import models
 from django.utils import timezone
 import datetime
 import requests
-
 class EmployeeSerializer(serializers.ModelSerializer):
     attachments_uuid = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     end_contract_date = serializers.DateField(required=False, allow_null=True)
@@ -187,6 +187,11 @@ class ReviewSerializer(serializers.ModelSerializer):
     
 
 class PrenotationSerializer(serializers.ModelSerializer):
+    employee_uuid = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    user_email = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    total = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
+
+
     class Meta:
         model = Prenotation
         fields = '__all__'
@@ -220,27 +225,26 @@ class PrenotationSerializer(serializers.ModelSerializer):
                 raise ValidationError('Invalid or inactive center.')
 
         # 3. Validate user ID from token
-        token = request.headers.get('Authorization')
-        if token:
-            # Here you need to implement your token parsing logic.
-            # This is a placeholder, replace it with actual token parsing.
-            user_id_from_token = get_principal(token)
-            if user_id_from_token != data.get('user_id'):
-                raise ValidationError('User ID in token does not match the user ID in prenotation.')
+       
+        user_id_from_token = get_principal(request)
+        if user_id_from_token != data.get('user_id'):
+            raise ValidationError('User ID in token does not match the user ID in prenotation.')
 
         # 4. Validate from_hour
         now = timezone.now()
-        if data['from_hour'] <= now + datetime.timedelta(days=1):
+        date = data['from_hour'].date()
+
+        if data['from_hour'].date() < now.date() + datetime.timedelta(days=1):
             raise ValidationError('from_hour must be at least 1 day from now.')
 
         if data['from_hour'].minute % 30 != 0:
             raise ValidationError('from_hour must be on the half-hour.')
 
         # 5. Validate to_hour
-        if data['to_hour'] <= data['from_hour'] + datetime.timedelta(minutes=30):
+        if data['to_hour'] < data['from_hour'] + datetime.timedelta(minutes=30):
             raise ValidationError('to_hour must be at least 30 minutes later than from_hour.')
 
-        if data['to_hour'] >= data['from_hour'] + datetime.timedelta(minutes=150):
+        if data['to_hour'] > data['from_hour'] + datetime.timedelta(minutes=150):
             raise ValidationError('the visite cannot last for more than 2h 30 minutes.')
 
         if data['to_hour'].minute % 30 != 0:
@@ -252,40 +256,65 @@ class PrenotationSerializer(serializers.ModelSerializer):
                 raise ValidationError('Employee is not available during the selected time.')
 
         elif center_uuid:
-            available_employee = self.find_best_employee(center_uuid, data['type'], data['from_hour'], data['to_hour'])
-            if available_employee:
-                data['employee_uuid'] = available_employee.uuid
-                data['total'] = self.calculate_total_price(data['type'], data['from_hour'], data['to_hour'], center_uuid)
-                data['status'] = 'confirmed'
+            available_employee_uuid = self.find_best_employee(center_uuid, data['type'], data['from_hour'], data['to_hour'])
+            if available_employee_uuid:
+                data['employee_uuid'] =available_employee_uuid
             else:
                 raise ValidationError('No available employees for the center.')
+        data['total'] = self.calculate_total_price(data['type'], data['from_hour'], data['to_hour'], center_uuid)
+        data['user_email'] = get_token_email(request)
+        data['status'] = 'pending'
+        data['status'] = 'confirmed' 
 
         return data
 
     def is_employee_available(self, employee_uuid, from_hour, to_hour):
-        overlapping_prenotations = Prenotation.objects.filter(
+        print("available?")
+        overlapping_prenotations1 = Prenotation.objects.filter(
             employee_uuid=employee_uuid,
-            from_hour__lt=to_hour,
+            from_hour__lte=from_hour,
             to_hour__gt=from_hour
         ).exists()
-        return not overlapping_prenotations
+        overlapping_prenotations2 = Prenotation.objects.filter(
+            employee_uuid=employee_uuid,
+            from_hour__gte=from_hour,
+            from_hour__lt=to_hour
+        ).exists() 
+        
+        return not (overlapping_prenotations1 or overlapping_prenotations2)
 
     def find_best_employee(self, center_uuid, type, from_hour, to_hour):
         employees = Employee.objects.filter(center_uuid=center_uuid, type=type, is_active=True)
-        best_employee = None
-        min_busy_hours = float('inf')
+        if not employees or len(employees) == 0:
+            return None
+        prenotations = Prenotation.objects.filter(
+            employee_uuid__in=[str(employee) for employee in employees.values_list('uuid', flat=True)], 
+            from_hour__lte=from_hour+datetime.timedelta (days=1),
+            from_hour__gte=from_hour
+        )
+        print(from_hour)
+        print(prenotations)
+        if prenotations == None or prenotations.count() == 0:
+            return employees.first().uuid
+        # Calcolare la differenza tra `to_hour` e `from_hour`
+        duration = models.ExpressionWrapper(
+            models.F('to_hour') - models.F('from_hour'),
+            output_field=models.DurationField()
+        )
         
-        busy_traces = EmployeeBusyTrace.objects.filter(
-            employee_uuid__in=employees.values_list('uuid', flat=True)).values('employee_uuid', 'prenotation_hours')
-        busy_hours_map = {trace['employee_uuid']: trace['prenotation_hours'] for trace in busy_traces}
-        
-        for employee in employees:
-            if self.is_employee_available(employee.uuid, from_hour, to_hour):
-                busy_hours = busy_hours_map.get(employee.uuid, 0)
-                if busy_hours < min_busy_hours:
-                    min_busy_hours = busy_hours
-                    best_employee = employee
-        return best_employee
+        # Annotare la durata e raggruppare per `employee_uuid`
+        total_durations = prenotations.annotate(
+            duration=duration,
+        ).values('employee_uuid').annotate(
+            total_duration=models.Sum('duration')
+        ).order_by('total_duration')
+
+        print(total_durations)
+        if total_durations:
+            for employee_uuid in total_durations.all().values():
+                if self.is_employee_available(employee_uuid.get('employee_uuid'), from_hour,to_hour):
+                    return employee_uuid.get('employee_uuid')
+        return None
 
     def calculate_total_price(self, type, from_hour, to_hour, center_uuid):
         center = Center.objects.filter(uuid=uuid.UUID(center_uuid)).first()
@@ -293,8 +322,8 @@ class PrenotationSerializer(serializers.ModelSerializer):
             raise ValidationError('Invalid center.')
         duration_hours = (to_hour - from_hour).total_seconds() / 3600
         if type == 'nutritionist':
-            return center.hour_nutritionist_price * duration_hours
+            return float(center.hour_nutritionist_price) * duration_hours
         elif type == 'trainer':
-            return center.hour_trainer_price * duration_hours
+            return float(center.hour_trainer_price) * duration_hours
         else:
             raise ValidationError('Invalid prenotation type.')

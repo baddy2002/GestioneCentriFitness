@@ -19,12 +19,16 @@ def get_principal(request):
     if request.headers and request.headers.get('Authorization'):
         token = request.headers.get('Authorization').split()[1]
     if not token:
-        return None
+        if request.COOKIES and request.COOKIES.get('access'):
+            token =  request.COOKIES.get('access')
+        if not token:
+            return None
     payload = jwt.decode(token.encode('UTF-8'), settings.SECRET_KEY, algorithms=['HS256'])
     if not payload: 
         return None
     email = payload.get('email')
     return email
+
 
 def validate_partita_iva(p_iva):
     

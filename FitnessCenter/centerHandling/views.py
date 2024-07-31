@@ -4,6 +4,7 @@ from os import getenv
 from django.http import JsonResponse
 import json
 from django.shortcuts import get_object_or_404
+import pytz
 from rest_framework.views import APIView
 from django.core.exceptions import FieldError
 from .utils import DateUtils
@@ -422,11 +423,11 @@ class ReviewView(APIView):
         if query_params.get('obj.center_uuid') is not None:
             reviews=reviews.filter(center_uuid=query_params.get('obj.center_uuid'))
         if query_params.get('from.exec_time') is not None:
-            reviews=reviews.filter(start_date__gte=DateUtils.parse_string_to_datetime(query_params.get('from.exec_time')))
+            reviews=reviews.filter(exec_time__gte=DateUtils.parse_string_to_datetime(query_params.get('from.exec_time')))
         if query_params.get('to.exec_time') is not None:
-            reviews=reviews.filter(start_date__lte=DateUtils.parse_string_to_datetime(query_params.get('to.exec_time')))
+            reviews=reviews.filter(exec_time__lte=DateUtils.parse_string_to_datetime(query_params.get('to.exec_time')))
         if query_params.get('obj.exec_time') is not None:
-            reviews=reviews.filter(start_date=DateUtils.parse_string_to_datetime(query_params.get('obj.exec_time')))
+            reviews=reviews.filter(exec_time=DateUtils.parse_string_to_datetime(query_params.get('obj.exec_time')))
         if query_params.get('obj.is_active') is not None and query_params.get('obj.is_active').strip().lower() == 'false':
             reviews=reviews.filter(is_active=False)
         else:
@@ -550,7 +551,7 @@ class PrenotationView(APIView):
     def post(self, request):
         try:
             data = json.loads(request.body)
-            data['user_id'] = get_principal(request.headers.get('Authorization'))
+            data['user_id'] = get_principal(request)
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
         except ValueError:
@@ -626,17 +627,19 @@ class PrenotationView(APIView):
 class AvailabilityView(APIView):
     @jwt_base_authetication
     def get(self, request, type, date, center_uuid, employee_uuid=None):
-        print('::::::::::.availability:::::::::::::::::::::..')
-        min_date = timezone.now() + datetime.timedelta(days=1)
         available_slots = DateUtils.generate_slots(datetime.time(8, 0), datetime.time(18, 0))
+        
+        min_date = timezone.now().date() + datetime.timedelta(days=1)
+        date = DateUtils.parse_string_to_date(date)
+        date = min_date if min_date > date else date
+        
 
-
-        center = get_object_or_404(Center, uuid=center_uuid)
+        after_date = date + datetime.timedelta(days=1)
         
         prenotations = Prenotation.objects.filter(
             center_uuid=center_uuid,
-            from_hour__gt = min_date,
-            to_hour__lt = DateUtils.parse_string_to_date(date)+datetime.timedelta(days=1)
+            from_hour__gt = date,
+            from_hour__lt = after_date
         )
         # Get employees of the center
         if(employee_uuid is None):
@@ -647,20 +650,28 @@ class AvailabilityView(APIView):
         else:
             employee =get_object_or_404(Employee, uuid=employee_uuid)
             prenotations = prenotations.filter(employee_uuid=str(employee.uuid))
-
+        print(prenotations)
         busy_hours_map = {
-    prenotation.from_hour: prenotation.to_hour
-    for prenotation in prenotations
-}
-        print(busy_hours_map)
+            prenotation.from_hour: prenotation.to_hour
+            for prenotation in prenotations
+        }
+        UTC_timezone = pytz.UTC
         available = []
         for start, end in available_slots:                          #per ogni fascia
             is_available = True
+            start_datetime = UTC_timezone.localize(datetime.datetime.combine(date, start))
+            end_datetime = UTC_timezone.localize(datetime.datetime.combine(date, end))
             for busy_start, busy_end in busy_hours_map.items():     #per ogni fascia occupata
-                if not (end <= busy_start or start >= busy_end):    # se la fascia finisce dopo l'inizio di una p.  
-                    is_available = False                            #e comincia prima che sia finita allora non la mostro
+                print('====================================')
+                print(str(start_datetime))
+                print(str(end_datetime))
+                print(str(busy_start))
+                print(str(busy_end))
+                if (end_datetime<=busy_end and start_datetime>=busy_start):    
+                    print('right')
+                    is_available = False                            
                     break
             if is_available:
                 available.append((start, end))
 
-        return JsonResponse({"availability": available_slots}, status=200)
+        return JsonResponse({"availability": available}, status=200)

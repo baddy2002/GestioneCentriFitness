@@ -150,5 +150,5 @@ class Prenotation(models.Model):
 class EmployeeBusyTrace(models.Model):
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)   
     employee_uuid = models.CharField(max_length=255)
-    prenotation_hours = models.DecimalField(max_digits=3, decimal_places=1)
+    prenotation_hours = models.DecimalField(max_digits=3, decimal_places=1, default=0)
     date = models.DateField(auto_now_add=True)
