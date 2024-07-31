@@ -25,7 +25,7 @@ urlpatterns = [
 
     path('prenotations/', PrenotationView.as_view(), name='prenotation-views'),
     path('prenotations/<str:uuid>', PrenotationView.as_view(), name='prenotation-detail-view'),
-    path('availability/<str:type>/<str:date>/<str:center_uuid>', AvailabilityView.as_view()),
+    path('availability/<str:type>/<str:date>/<str:center_uuid>', AvailabilityView.as_view(), name = 'availability-views'),
     path('availability/<str:type>/<str:date>/<str:center_uuid>/<str:employee_uuid>', AvailabilityView.as_view()),
 
 ]

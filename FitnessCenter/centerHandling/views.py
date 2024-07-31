@@ -675,3 +675,7 @@ class AvailabilityView(APIView):
                 available.append((start, end))
 
         return JsonResponse({"availability": available}, status=200)
+    
+'''    
+    def delete(self, request):
+        '''

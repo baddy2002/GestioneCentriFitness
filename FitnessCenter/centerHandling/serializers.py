@@ -292,8 +292,7 @@ class PrenotationSerializer(serializers.ModelSerializer):
             from_hour__lte=from_hour+datetime.timedelta (days=1),
             from_hour__gte=from_hour
         )
-        print(from_hour)
-        print(prenotations)
+
         if prenotations == None or prenotations.count() == 0:
             return employees.first().uuid
         # Calcolare la differenza tra `to_hour` e `from_hour`
@@ -309,7 +308,6 @@ class PrenotationSerializer(serializers.ModelSerializer):
             total_duration=models.Sum('duration')
         ).order_by('total_duration')
 
-        print(total_durations)
         if total_durations:
             for employee_uuid in total_durations.all().values():
                 if self.is_employee_available(employee_uuid.get('employee_uuid'), from_hour,to_hour):

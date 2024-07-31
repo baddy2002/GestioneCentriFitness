@@ -1,11 +1,12 @@
 
+import datetime
 from os import getenv
 from django.test import TestCase
 from django.urls import reverse
 from django.conf import settings
 from rest_framework import status 
 from rest_framework.test import APIClient, APITestCase
-from .models import Employee, Exit, Center, Review
+from .models import Employee, Exit, Center, Prenotation, Review
 import json
 import requests
 import jwt
@@ -17,7 +18,9 @@ import jwt
 ###
 ###
 
-
+def found_availability_slots(type, date, center_uuid):
+    url =reverse('availability-views', args=(type, date ,center_uuid, ))
+        
 
 class AuthenticatedAPITestCase(APITestCase):
     client = APIClient()                        #Client a cui tutti i test faranno riferimento che terrà impostato l'header Authentication
@@ -878,3 +881,209 @@ class ReviewAPITestCase(AuthenticatedAPITestCase):
         self.assertEqual(fetched_data['user_id'], updated_data.get("user_id"))
         self.assertEqual(fetched_data['center_uuid'], updated_data.get("center_uuid"))
         self.assertEqual(fetched_data['is_active'], updated_data.get("is_active"))
+
+
+class PrenotationAPITestCase(AuthenticatedAPITestCase):
+    def setUp(self):
+        self.prenotation_test = EmployeeAPITestCase()
+        self.prenotation_test.setUp()
+        self.prenotation_test.test_post_valid_employee()                          #creo un center
+                    
+        self.url = reverse('prenotation-views')
+        self.invalid_client = APIClient()
+
+    
+    def test_post_missing_fields(self):                                                 #assicura che non venga persistito se mancano campi
+        data = {
+            "from_hour": "2024-08-01T14:00:00",
+            "to_hour":  "2024-08-01T15:00:00"
+        }
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response_data = response.json()
+        self.assertIn('center_uuid', response_data)
+        self.assertIn('type', response_data)
+        self.assertEqual(response_data['center_uuid'], ['This field is required.'])
+        self.assertEqual(response_data['type'], ['This field is required.'])
+
+
+    def test_post_invalid_type(self):       
+                                                            
+        data = {
+            "center_uuid": str(Center.objects.first().uuid),
+            "employee_uuid": str(Employee.objects.filter(type="trainer").first().uuid),
+            "from_hour": "2024-08-01T14:00:00",
+            "to_hour":  "2024-08-01T15:00:00",
+            "type": "nutritionist"
+        }
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response_data = response.json()
+        self.assertIn('non_field_errors', response_data)
+        self.assertEqual(response_data["non_field_errors"], ["Employee type does not match the prenotation type."])
+
+    def test_post_invalid_time(self):         
+                                                           
+        data = {
+            "center_uuid": str(Center.objects.first().uuid),
+            "employee_uuid": str(Employee.objects.filter(type="trainer").first().uuid),
+            "from_hour": "2024-08-01T14:00:00",
+            "to_hour":  "2024-08-01T14:20:00",
+            "type": "trainer"
+        }
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response_data = response.json()
+        self.assertIn('non_field_errors', response_data)
+        self.assertEqual(response_data["non_field_errors"], [ "to_hour must be at least 30 minutes later than from_hour."])
+        data = {
+            "center_uuid": str(Center.objects.first().uuid),
+            "employee_uuid": str(Employee.objects.filter(type="trainer").first().uuid),
+            "from_hour": "2024-08-01T14:10:00",
+            "to_hour":  "2024-08-01T15:00:00",
+            "type": "trainer"
+        }
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response_data = response.json()
+        self.assertIn('non_field_errors', response_data)
+        self.assertEqual(response_data["non_field_errors"], [ "from_hour must be on the half-hour."])
+
+    def test_post_busy_employee(self):   
+        prenotation = Prenotation.objects.first() 
+        if prenotation is None:
+            response = self.test_post_valid_prenotation(False).json()  
+            prenotation = Prenotation() 
+            prenotation.center_uuid = response.get('center_uuid')   
+            prenotation.employee_uuid =    response.get('employee_uuid')  
+            prenotation.from_hour = response.get('from_hour')  
+            prenotation.to_hour =     response.get('to_hour')     
+        data = {
+            "center_uuid": prenotation.center_uuid,
+            "employee_uuid": prenotation.employee_uuid,
+            "from_hour": prenotation.from_hour,
+            "to_hour":  prenotation.to_hour,
+            "type": "trainer"
+        }
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response_data = response.json()
+        self.assertIn('non_field_errors', response_data)
+        self.assertEqual(response_data["non_field_errors"], [ "Employee is not available during the selected time."])
+
+    def test_post_busy_center(self):       
+        prenotation = Prenotation.objects.first() 
+        if prenotation is None:
+            prenotation = Prenotation() 
+            response = self.test_post_valid_prenotation(False).json()   
+            prenotation.center_uuid = response.get('center_uuid')   
+            prenotation.from_hour = response.get('from_hour')  
+            prenotation.to_hour =     response.get('to_hour')     
+        data = {
+            "center_uuid": prenotation.center_uuid,
+            "from_hour": prenotation.from_hour,
+            "to_hour":  prenotation.to_hour,
+            "type": "trainer"
+        }
+        response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response_data = response.json()
+        self.assertIn('non_field_errors', response_data)
+        self.assertEqual(response_data["non_field_errors"], [  "No available employees for the center."])
+
+    def test_post_valid_prenotation(self, first=True, check=True):                 
+        date = (datetime.datetime.now()+datetime.timedelta(days=1))
+        minutes = (date.minute// 30) * 30          #mezz'ora minore più vicina
+        if minutes % 30 >= 15:                                                                     
+            minutes += 30  
+        date = date.replace(minute=minutes, second=0, microsecond=0)
+        if first:
+            data = {                                                            # prima volta non ci saranno prenotazioni quindi va bene      
+                "center_uuid": str(Center.objects.first().uuid),
+                "from_hour": str(date),
+                "to_hour":  str(date+datetime.timedelta(minutes=30)),
+                "type": "trainer"
+            }
+        
+            invalid_response = self.invalid_client.post(self.url, data, format='json')
+            self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)   
+            print('trying to correct persist: ')
+            print(data)
+            response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
+            print('response: ')
+            print(response.json())
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+            
+            self.assertEqual(Prenotation.objects.get(pk=response.json().get('uuid')).status, "confirmed")
+        else:
+            self.availability_test = AvailabilityAPITestCase()
+            self.availability_test.setUp()
+            availability_slots = self.availability_test.test_correct_availability_center().json().get('availability')                          
+            from_time = datetime.datetime.strptime(availability_slots[0][0], "%H:%M:%S").time()
+            to_time = datetime.datetime.strptime(availability_slots[0][1], "%H:%M:%S").time()
+            center = find_valid_center()
+            data = {                                                            # prima volta non ci saranno prenotazioni quindi va bene      
+                "center_uuid": str(center.uuid),
+                "from_hour": datetime.datetime.combine(datetime.datetime.now().date()+ datetime.timedelta(days=1), from_time),
+                "to_hour":  datetime.datetime.combine(datetime.datetime.now().date()+ datetime.timedelta(days=1), to_time),
+                "type": "trainer"
+            }
+            print('trying to correct persist: ')
+            print(data)
+            response = AuthenticatedAPITestCase.client.post(self.url, data, format='json')
+
+            print('response: ')
+            print(response.json())
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)                     # non riempirò mai con i test la disponibiità 
+            self.assertEqual(Prenotation.objects.get(pk=response.json().get('uuid')).status, "confirmed")
+        
+        return response
+    
+class AvailabilityAPITestCase(AuthenticatedAPITestCase):
+    def setUp(self):
+        self.invalid_client = APIClient()
+        self.center_test = CenterAPITestCase()
+        self.center_test.setUp()
+        self.center_test.test_post_valid_center_and_not_replicate()
+
+    def test_correct_availability_center(self):
+
+        url = reverse('availability-views', args=('trainer', str(datetime.datetime.now().date()+datetime.timedelta(days=1)) ,str(Center.objects.first().uuid), ))
+       
+        invalid_response = self.invalid_client.get(url, format='json')
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED) 
+
+        response = AuthenticatedAPITestCase.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return response
+
+
+
+def find_valid_center():
+    centers = Center.objects.all()
+    for center in centers:
+        employee_exist = Employee.objects.filter(is_active=True, type="trainer").exists()
+        if employee_exist:
+            return center
+    return generate_valid_center()
+
+def generate_valid_center():
+    centers = Center.objects.all()
+    for center in centers:
+        data = {
+            "first_name": "John",
+            "last_name": "Doe",
+            "DOB": "1990-01-01",
+            "salary": 50000,
+            "fiscalCode": "DOEJHN90A01H501Z",
+            "center_uuid":str(center.uuid),
+            "email": "joshn@doe.com",
+            "type": "trainer",
+            "hiring_date": "2025-01-01",
+            "end_contract_date": "2025-02-01",
+            "is_active": True
+        }
+
+        requests.post(f"{settings.BACKEND_SSO_SERVICE_PROTOCOL}://{settings.BACKEND_SSO_SERVICE_DOMAIN}:{settings.BACKEND_SSO_SERVICE_PORT}/api/employees/",
+            data=json.dumps(data),headers={"Content-Type":"application/json"})
+        return center
