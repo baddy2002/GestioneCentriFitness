@@ -3,6 +3,8 @@ from dateutil import parser
 import re
 import uuid
 from .models import Employee
+from django.template.loader import render_to_string
+from weasyprint import HTML
 
 class DateUtils():
     
@@ -35,7 +37,7 @@ class DateUtils():
             raise ValueError("Date format is not supported")
         
     @classmethod
-    def generate_slots(cls, start_time, end_time, date=None):
+    def generate_slots(cls, start_time, end_time, date=None, duration = 30):
         # Converti start_time e end_time in datetime.datetime per la manipolazione
         if date == None:
             date = datetime.now().date()
@@ -51,7 +53,7 @@ class DateUtils():
         
         current_time = start_datetime
         while current_time < end_datetime:
-            next_time = current_time + timedelta(minutes=30)
+            next_time = current_time + timedelta(minutes=duration)
             slots.append((current_time.time(), next_time.time()))
             current_time = next_time
         
@@ -74,40 +76,48 @@ class EmailsUtils():
 
     @classmethod
     def generate_customer_content(cls, name, prenotation_status, prenotation_total, employee_uuid, executor, availability_moments=None, new_employee_uuid=None):
-        employee  =Employee.objects.filter(uuid=uuid.UUID(employee_uuid)).first()
+        employee  = Employee.objects.filter(uuid=uuid.UUID(employee_uuid)).first()
         new_employee = None
         if new_employee_uuid:
-            print('second')
             new_employee = Employee.objects.filter(uuid=uuid.UUID(new_employee_uuid)).first()
-        if executor == 'customer':
-            print('third')
-            print("Hi "+ str(name))
-            print (f"your prenotation with {employee.first_name} {employee.last_name}  of total: {prenotation_total} is succesfully:" +str(prenotation_status))
+        
+        context = {
+            'name': name,
+            'prenotation_status': prenotation_status,
+            'prenotation_total': prenotation_total,
+            'employee': employee,
+            'executor': executor,
+            'availability_moments': availability_moments,
+            'new_employee': new_employee
+        }
+        
+        html_content = render_to_string('deletePrenotationCustomerEmail.html', context)
 
-        else:
-            print("Hi "+ str(name))
-            print(f'We are sorry to inform you that your prenotation with {employee.first_name} {employee.last_name} was deleted because the {employee.type} is no more available')
-            if new_employee:
-                print(f"We found as substitute: {new_employee.first_name} {new_employee.last_name}, you can accept or decline this prenotation!")
-                print(f"this are the first available moments of your original {employee.type}:")
-                print(availability_moments.get('employee_availability'))
-                
-            else:
-                print(f'We was not able to find a substitute, here you can see the first available moments for your {employee.type}')
-                print(availability_moments.get('employee_availability'))
-                print(f"alternativally you can choice another {employee.type} of the center:")
-                print(availability_moments.get('center_availability'))
-            print("Please choice if accept or decline the coices")
-    
-    
+        # Convert HTML to PDF
+        pdf_file = HTML(string=html_content).write_pdf()
+        
+        # Save PDF to file
+        with open('customerBody.pdf', 'wb') as file:
+            file.write(pdf_file)
+          
+
     @classmethod
     def generate_employee_content(cls, customer_email, prenotation_status, prenotation_from, prenotation_to, employee_name, executor):
         
-        if executor != 'customer':
-            print("Hi "+ str(employee_name))
-            print (f"your prenotation from {prenotation_from} to {prenotation_to} is succesfully updated: {prenotation_status} we already inform customer to his email: {customer_email}")
-
-        else:
-            print("Hi "+ str(employee_name))
-            print(f'customer: {customer_email} cancel his prenotation to with you on {prenotation_from} - {prenotation_to}')
-
+        context = {
+            'customer_email': customer_email,
+            'prenotation_status': prenotation_status,
+            'prenotation_from': prenotation_from,
+            'prenotation_to': prenotation_to,
+            'employee_name': employee_name,
+            'executor': executor
+        }
+        
+        html_content = render_to_string('deletePrenotationEmployeeEmail.html', context)
+        
+        # Convert HTML to PDF
+        pdf_file = HTML(string=html_content).write_pdf()
+        
+        # Save PDF to file
+        with open('employeeBody.pdf', 'wb') as file:
+            file.write(pdf_file)

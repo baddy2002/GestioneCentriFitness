@@ -630,7 +630,7 @@ class PrenotationView(APIView):
             executor = 'customer'
             prenotation = get_object_or_404(Prenotation, uuid=uuid)
             
-            if get_principal(request=request) != prenotation.user_id:           # non è stato l'utente a richiederlo
+            if get_principal(request=request) == prenotation.user_id:           # non è stato l'utente a richiederlo
                 executor='employee'
                 new_employee_uuid = PrenotationService.replaceEmployee(prenotation)
                 availability_moments = PrenotationService.find_next_available_moments(prenotation)
@@ -664,8 +664,13 @@ class PrenotationView(APIView):
 
 class AvailabilityView(APIView):
     def get(self, request, type, date, center_uuid, employee_uuid=None):
-        available_slots = DateUtils.generate_slots(datetime.time(8, 0), datetime.time(18, 0))
-        
+        prenotation_uuid = request.GET.get('prenotation_uuid', None)
+        if prenotation_uuid is None:
+            available_slots = DateUtils.generate_slots(datetime.time(8, 0), datetime.time(18, 0), None, 30)
+        else:
+            prenotation = get_object_or_404(Prenotation, uuid=prenotation_uuid)
+            duration = (prenotation.to_hour - prenotation.from_hour).total_seconds() / 60
+            available_slots = DateUtils.generate_slots(datetime.time(8, 0), datetime.time(18, 0), None, duration)
         min_date = timezone.now().date() + datetime.timedelta(days=1)
         date = DateUtils.parse_string_to_date(date)
         date = min_date if min_date > date else date

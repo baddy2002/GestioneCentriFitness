@@ -53,7 +53,7 @@ ROOT_URLCONF = 'FitnessCenter.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [path.join(BASE_DIR, 'centerHandling/templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

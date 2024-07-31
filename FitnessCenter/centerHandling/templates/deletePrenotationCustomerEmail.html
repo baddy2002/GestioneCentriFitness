@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Email</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        .container {
+            width: 90%;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #007BFF;
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+        }
+        p {
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        .highlight {
+            background-color: #e7f3fe;
+            padding: 8px;
+            border-left: 4px solid #007BFF;
+            margin: 15px 0;
+        }
+        .availability {
+            background-color: #f8f9fa;
+            padding: 8px;
+            border-left: 4px solid #28a745;
+            margin: 10px 0;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        li {
+            background-color: #e7f3fe;
+            padding: 6px;
+            margin: 4px 0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn {
+            display: inline-block;
+            padding: 6px 12px;
+            margin: 5px;
+            font-size: 0.8em;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .btn-accept {
+            background-color: #28a745;
+        }
+        .btn-decline {
+            background-color: #dc3545;
+        }
+        .btn-book {
+            background-color: #007BFF;
+        }
+        /* Ensure the content fits well on one page */
+        @media print {
+            body, .container {
+                width: 100%;
+                margin: 0;
+                padding: 10px;
+                box-shadow: none;
+            }
+            .btn {
+                padding: 6px 10px;
+                font-size: 0.8em;
+            }
+            .btn-book {
+                padding: 5px 10px;
+                font-size: 0.7em;
+            }
+            h1 {
+                font-size: 1.1em;
+            }
+            .highlight, .availability {
+                margin: 8px 0;
+            }
+            ul {
+                margin: 0;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Notification</h1>
+        {% if executor == 'customer' %}
+            <p>Hi {{ name }},</p>
+            <div class="highlight">
+                <p>Your prenotation with {{ employee.first_name }} {{ employee.last_name }} of total: <strong>{{ prenotation_total }}</strong> is successfully: <strong>{{ prenotation_status }}</strong></p>
+            </div>
+        {% else %}
+            <p>Hi {{ name }},</p>
+            <div class="highlight">
+                <p>We are sorry to inform you that your prenotation with {{ employee.first_name }} {{ employee.last_name }} was deleted because the <strong>{{ employee.type }}</strong> is no longer available.</p>
+            </div>
+            {% if new_employee %}
+                <p>We found a substitute: <strong>{{ new_employee.first_name }} {{ new_employee.last_name }}</strong>, you can accept or decline this prenotation!</p>
+                <div class="availability">
+                    <p>These are the first available moments of your original <strong>{{ employee.type }}</strong>:</p>
+                    <ul>
+                        {% for interval in availability_moments.employee_availability %}
+                            <li>
+                                {{ interval }}
+                                <a href="#" class="btn btn-book">Prenota</a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% else %}
+                <p>We were not able to find a substitute. Here you can see the first available moments for your <strong>{{ employee.type }}</strong>:</p>
+                <div class="availability">
+                    <ul>
+                        {% for interval in availability_moments.employee_availability %}
+                            <li>
+                                {{ interval }}
+                                <a href="#" class="btn btn-book">Prenota</a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <p>Alternatively, you can choose another <strong>{{ employee.type }}</strong> of the center:</p>
+                <div class="availability">
+                    <ul>
+                        {% for interval in availability_moments.center_availability %}
+                            <li>
+                                {{ interval }}
+                                <a href="#" class="btn btn-book">Prenota</a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            <p>Please choose if you accept or decline the choices:</p>
+            <a href="#" class="btn btn-accept">Accept</a>
+            <a href="#" class="btn btn-decline">Decline</a>
+        {% endif %}
+    </div>
+</body>
+</html>

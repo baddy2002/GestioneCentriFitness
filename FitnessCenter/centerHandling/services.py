@@ -110,9 +110,8 @@ class PrenotationService:
     @classmethod
     def find_next_available_moments(cls, prenotation):
 
-        print(f'{settings.BACKEND_SERVICE_PROTOCOL}://{settings.BACKEND_SERVICE_DOMAIN}:{settings.BACKEND_SERVICE_PORT}/api/availability/{prenotation.type}/{prenotation.from_hour.date()}/{prenotation.center_uuid}')
-        response1 = requests.get(f'{settings.BACKEND_SERVICE_PROTOCOL}://{settings.BACKEND_SERVICE_DOMAIN}:{settings.BACKEND_SERVICE_PORT}/api/availability/{prenotation.type}/{prenotation.from_hour.date()}/{prenotation.center_uuid}')
-        response2 = requests.get(f'{settings.BACKEND_SERVICE_PROTOCOL}://{settings.BACKEND_SERVICE_DOMAIN}:{settings.BACKEND_SERVICE_PORT}/api/availability/{prenotation.type}/{prenotation.from_hour.date()}/{prenotation.center_uuid}/{prenotation.employee_uuid}')
+        response1 = requests.get(f'{settings.BACKEND_SERVICE_PROTOCOL}://{settings.BACKEND_SERVICE_DOMAIN}:{settings.BACKEND_SERVICE_PORT}/api/availability/{prenotation.type}/{prenotation.from_hour.date()}/{prenotation.center_uuid}?prenotation_uuid={prenotation.uuid}')
+        response2 = requests.get(f'{settings.BACKEND_SERVICE_PROTOCOL}://{settings.BACKEND_SERVICE_DOMAIN}:{settings.BACKEND_SERVICE_PORT}/api/availability/{prenotation.type}/{prenotation.from_hour.date()}/{prenotation.center_uuid}/{prenotation.employee_uuid}?prenotation_uuid={prenotation.uuid}')
         if response1 and response1.json() and response2 and response2.json(): 
             center_availability = response1.json().get('availability')
             employee_availability = response2.json().get('availability')

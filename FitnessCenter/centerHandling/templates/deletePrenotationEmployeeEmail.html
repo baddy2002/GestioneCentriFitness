@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Email</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #28a745;
+            text-align: center;
+        }
+        p {
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+        .highlight {
+            background-color: #e7f3fe;
+            padding: 10px;
+            border-left: 5px solid #007BFF;
+            margin: 20px 0;
+        }
+        .notification {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-left: 5px solid #ffc107;
+            margin: 10px 0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 10px 5px;
+            font-size: 1em;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .btn-update {
+            background-color: #007BFF;
+        }
+        .btn-cancel {
+            background-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Notification</h1>
+        {% if executor != 'customer' %}
+            <p>Hi {{ employee_name }},</p>
+            <div class="highlight">
+                <p>Your prenotation from <strong>{{ prenotation_from }}</strong> to <strong>{{ prenotation_to }}</strong> is successfully updated: <strong>{{ prenotation_status }}</strong>.</p>
+                <p>We have already informed the customer at their email: <strong>{{ customer_email }}</strong>.</p>
+            </div>
+        {% else %}
+            <p>Hi {{ employee_name }},</p>
+            <div class="notification">
+                <p>The customer <strong>{{ customer_email }}</strong> has canceled their prenotation with you on <strong>{{ prenotation_from }}</strong> - <strong>{{ prenotation_to }}</strong>.</p>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
