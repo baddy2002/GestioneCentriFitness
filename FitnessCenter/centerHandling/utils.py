@@ -5,7 +5,9 @@ import uuid
 from .models import Employee
 from django.template.loader import render_to_string
 from weasyprint import HTML
-
+from django.core.mail import EmailMultiAlternatives
+from io import BytesIO
+from django.conf import settings
 class DateUtils():
     
     date_patterns = [
@@ -50,7 +52,7 @@ class DateUtils():
         
         # Crea una lista per gli intervalli di mezz'ora
         slots = []
-        
+
         current_time = start_datetime
         while current_time < end_datetime:
             next_time = current_time + timedelta(minutes=duration)
@@ -70,13 +72,10 @@ class PaymentsUtils():
         return
 
 class EmailsUtils():
+    
     @classmethod
-    async def send(cls, content, to, cc, sender, subject):
-        return
-
-    @classmethod
-    def generate_customer_content(cls, name, prenotation_status, prenotation_total, employee_uuid, executor, availability_moments=None, new_employee_uuid=None):
-        employee  = Employee.objects.filter(uuid=uuid.UUID(employee_uuid)).first()
+    def generate_customer_content(cls, name, prenotation_status, prenotation_total, employee_uuid, executor, availability_moments=None, new_employee_uuid=None, recipient_email=None):
+        employee = Employee.objects.filter(uuid=uuid.UUID(employee_uuid)).first()
         new_employee = None
         if new_employee_uuid:
             new_employee = Employee.objects.filter(uuid=uuid.UUID(new_employee_uuid)).first()
@@ -92,18 +91,25 @@ class EmailsUtils():
         }
         
         html_content = render_to_string('deletePrenotationCustomerEmail.html', context)
-
+        
         # Convert HTML to PDF
-        pdf_file = HTML(string=html_content).write_pdf()
+        pdf_file = BytesIO()
+        HTML(string=html_content).write_pdf(pdf_file)
+        pdf_file.seek(0)
         
-        # Save PDF to file
-        with open('customerBody.pdf', 'wb') as file:
-            file.write(pdf_file)
-          
-
+        # Create email
+        email = EmailMultiAlternatives(
+            subject="Prenotation Cancelled",
+            body=html_content,  # This is the text version of the email
+            from_email=settings.EMAIL_HOST_USER,
+            to=[recipient_email]
+        )
+        email.attach_alternative(html_content, "text/html")  # Set the content as HTML
+        email.attach('customerBody.pdf', pdf_file.read(), 'application/pdf')
+        email.send()
+    
     @classmethod
-    def generate_employee_content(cls, customer_email, prenotation_status, prenotation_from, prenotation_to, employee_name, executor):
-        
+    def generate_employee_content(cls, customer_email, prenotation_status, prenotation_from, prenotation_to, employee_name, executor, recipient_email=None):
         context = {
             'customer_email': customer_email,
             'prenotation_status': prenotation_status,
@@ -116,8 +122,17 @@ class EmailsUtils():
         html_content = render_to_string('deletePrenotationEmployeeEmail.html', context)
         
         # Convert HTML to PDF
-        pdf_file = HTML(string=html_content).write_pdf()
+        pdf_file = BytesIO()
+        HTML(string=html_content).write_pdf(pdf_file)
+        pdf_file.seek(0)
         
-        # Save PDF to file
-        with open('employeeBody.pdf', 'wb') as file:
-            file.write(pdf_file)
+        # Create email
+        email = EmailMultiAlternatives(
+            subject="Prenotation Cancelled",
+            body=html_content,  # This is the text version of the email
+            from_email=settings.EMAIL_HOST_USER,
+            to=[recipient_email]
+        )
+        email.attach_alternative(html_content, "text/html")  # Set the content as HTML
+        email.attach('employeeBody.pdf', pdf_file.read(), 'application/pdf')
+        email.send()

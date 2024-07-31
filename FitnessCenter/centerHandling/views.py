@@ -19,7 +19,7 @@ from django.db.models import Q
 import uuid
 from urllib.parse import unquote, quote
 
-from .tokenService import get_principal, get_token_full_name, jwt_base_authetication, jwt_manager_authetication, jwt_nutritionist_authetication, jwt_trainer_authetication
+from .tokenService import get_principal, get_token_email, get_token_full_name, jwt_base_authetication, jwt_manager_authetication, jwt_nutritionist_authetication, jwt_trainer_authetication
 #<=========================================  Employee  ==========================================================>
 class EmployeeView(APIView):
 
@@ -638,11 +638,12 @@ class PrenotationView(APIView):
             prenotation.status='to cancel'
             try:
                 if executor == 'customer':
-                    EmailsUtils.generate_customer_content(get_token_full_name(request), prenotation.status, prenotation.total, prenotation.employee_uuid, executor, None, None)
-                    EmailsUtils.generate_employee_content(prenotation.user_email, prenotation.status, prenotation.from_hour, prenotation.to_hour, get_token_full_name(request), executor)
+                    employee = Employee.objects.filter(uuid=prenotation.employee_uuid).first()
+                    EmailsUtils.generate_customer_content(get_token_full_name(request), prenotation.status, prenotation.total, prenotation.employee_uuid, executor, None, None, get_token_email(request))
+                    EmailsUtils.generate_employee_content(prenotation.user_email, prenotation.status, prenotation.from_hour, prenotation.to_hour, employee.first_name+" "+employee.last_name, executor, employee.email)
                 else:
-                    EmailsUtils.generate_customer_content(get_token_full_name(request), prenotation.status, prenotation.total, prenotation.employee_uuid, executor, availability_moments, new_employee_uuid)
-                    EmailsUtils.generate_employee_content(prenotation.user_email, prenotation.status, prenotation.from_hour, prenotation.to_hour, get_token_full_name(request), executor)
+                    EmailsUtils.generate_customer_content(get_token_email(request), prenotation.status, prenotation.total, prenotation.employee_uuid, executor, availability_moments, new_employee_uuid, get_token_email(request))
+                    EmailsUtils.generate_employee_content(prenotation.user_email, prenotation.status, prenotation.from_hour, prenotation.to_hour, get_token_full_name(request), executor, get_token_email(request))
 
             except Exception as e:
                 print("error: impossible send email !!!!!" + str(e))
