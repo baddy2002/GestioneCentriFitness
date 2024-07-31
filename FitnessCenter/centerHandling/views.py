@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.utils import timezone
 import datetime
 from os import getenv
@@ -5,6 +6,7 @@ from django.http import JsonResponse
 import json
 from django.shortcuts import get_object_or_404
 import pytz
+from .producer import KafkaProducerService
 from rest_framework.views import APIView
 from django.core.exceptions import FieldError
 from .utils import DateUtils, EmailsUtils, PaymentsUtils
@@ -630,28 +632,70 @@ class PrenotationView(APIView):
             executor = 'customer'
             prenotation = get_object_or_404(Prenotation, uuid=uuid)
             
-            if get_principal(request=request) == prenotation.user_id:           # non è stato l'utente a richiederlo
+            if get_principal(request=request) != prenotation.user_id:           # non è stato l'utente a richiederlo
                 executor='employee'
                 new_employee_uuid = PrenotationService.replaceEmployee(prenotation)
                 availability_moments = PrenotationService.find_next_available_moments(prenotation)
                 
             prenotation.status='to cancel'
-            try:
-                if executor == 'customer':
-                    employee = Employee.objects.filter(uuid=prenotation.employee_uuid).first()
-                    EmailsUtils.generate_customer_content(get_token_full_name(request), prenotation.status, prenotation.total, prenotation.employee_uuid, executor, None, None, get_token_email(request))
-                    EmailsUtils.generate_employee_content(prenotation.user_email, prenotation.status, prenotation.from_hour, prenotation.to_hour, employee.first_name+" "+employee.last_name, executor, employee.email)
-                else:
-                    EmailsUtils.generate_customer_content(get_token_email(request), prenotation.status, prenotation.total, prenotation.employee_uuid, executor, availability_moments, new_employee_uuid, get_token_email(request))
-                    EmailsUtils.generate_employee_content(prenotation.user_email, prenotation.status, prenotation.from_hour, prenotation.to_hour, get_token_full_name(request), executor, get_token_email(request))
+            producer_service = KafkaProducerService(bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS_EMAIL_WRITERS)
 
-            except Exception as e:
-                print("error: impossible send email !!!!!" + str(e))
-            prenotation.save() 
+            task_data = {
+                'name': get_token_full_name(request),
+                'prenotation_status': prenotation.status,
+                'prenotation_total': prenotation.total,
+                'employee_uuid': prenotation.employee_uuid,
+                'executor': executor,
+                'availability_moments': None,
+                'new_employee_uuid': None,
+                'recipient_email': get_token_email(request)
+            }
+            
+            if executor == 'customer':
+                employee = Employee.objects.filter(uuid=prenotation.employee_uuid).first()
+                producer_service.send_email_task({
+                    'type': 'customer',
+                    'data': task_data
+                })
+                producer_service.send_email_task({
+                    'type': 'employee',
+                    'data': {
+                        'customer_email': prenotation.user_email,
+                        'prenotation_status': prenotation.status,
+                        'prenotation_from': prenotation.from_hour,
+                        'prenotation_to': prenotation.to_hour,
+                        'employee_name': f"{employee.first_name} {employee.last_name}",
+                        'executor': executor,
+                        'recipient_email': employee.email
+                    }
+                })
+            else:
+                task_data.update({
+                    'availability_moments': availability_moments,
+                    'new_employee_uuid': new_employee_uuid
+                })
+                producer_service.send_email_task({
+                    'type': 'customer',
+                    'data': task_data
+                })
+                producer_service.send_email_task({
+                    'type': 'employee',
+                    'data': {
+                        'customer_email': prenotation.user_email,
+                        'prenotation_status': prenotation.status,
+                        'prenotation_from': prenotation.from_hour,
+                        'prenotation_to': prenotation.to_hour,
+                        'employee_name': get_token_full_name(request),
+                        'executor': executor,
+                        'recipient_email': get_token_email(request)
+                    }
+                })
+
+                prenotation.save() 
 
 
-            prenotation_data = PrenotationSerializer(prenotation).data
-            return JsonResponse({"prenotation": prenotation_data}, status=200)
+                prenotation_data = PrenotationSerializer(prenotation).data
+                return JsonResponse({"prenotation": prenotation_data}, status=200)
         except ValidationError:
                 return JsonResponse({"error": "Invalid UUID format"}, status=400)
         except IntegrityError as e:
@@ -693,7 +737,7 @@ class AvailabilityView(APIView):
         else:
             employee =get_object_or_404(Employee, uuid=employee_uuid)
             prenotations = prenotations.filter(employee_uuid=str(employee.uuid))
-        print(prenotations)
+
         busy_hours_map = {
             prenotation.from_hour: prenotation.to_hour
             for prenotation in prenotations
@@ -710,6 +754,6 @@ class AvailabilityView(APIView):
                     break
             if is_available:
                 available.append((start, end))
-
+        print('returned')
         return JsonResponse({"availability": available}, status=200)
     
