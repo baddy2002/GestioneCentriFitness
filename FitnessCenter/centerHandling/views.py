@@ -7,8 +7,8 @@ from django.shortcuts import get_object_or_404
 import pytz
 from rest_framework.views import APIView
 from django.core.exceptions import FieldError
-from .utils import DateUtils
-from .services import EmployeeService
+from .utils import DateUtils, EmailsUtils, PaymentsUtils
+from .services import EmployeeService, PrenotationService
 from .models import ( Employee, Exit, Center, Prenotation, Review)
 from .serializers import (EmployeeSerializer, ExitSerializer, CenterSerializer, PrenotationSerializer, ReviewSerializer)
 from django.db import IntegrityError, DatabaseError, OperationalError
@@ -19,7 +19,7 @@ from django.db.models import Q
 import uuid
 from urllib.parse import unquote, quote
 
-from .tokenService import get_principal, jwt_base_authetication, jwt_manager_authetication, jwt_nutritionist_authetication, jwt_trainer_authetication
+from .tokenService import get_principal, get_token_full_name, jwt_base_authetication, jwt_manager_authetication, jwt_nutritionist_authetication, jwt_trainer_authetication
 #<=========================================  Employee  ==========================================================>
 class EmployeeView(APIView):
 
@@ -528,7 +528,8 @@ class PrenotationView(APIView):
         
         if query_params.get('obj.status') is not None:
             prenotations = prenotations.filter(status=query_params.get('obj.status'))
-        
+        else:
+            prenotations = prenotations.filter(~Q(status='cancelled'))
         # Filtri basati su intervalli di date e ore
         if query_params.get('from.from_hour') is not None:
             from_hour = query_params.get('from.from_hour')
@@ -623,9 +624,45 @@ class PrenotationView(APIView):
         except ValidationError:
             return JsonResponse({"error": "Invalid UUID format"}, status=400)
         
+    @jwt_base_authetication
+    def delete(self, request, uuid): 
+        try:
+            executor = 'customer'
+            prenotation = get_object_or_404(Prenotation, uuid=uuid)
+            
+            if get_principal(request=request) != prenotation.user_id:           # non è stato l'utente a richiederlo
+                executor='employee'
+                new_employee_uuid = PrenotationService.replaceEmployee(prenotation)
+                availability_moments = PrenotationService.find_next_available_moments(prenotation)
+                
+            prenotation.status='to cancel'
+            try:
+                if executor == 'customer':
+                    EmailsUtils.generate_customer_content(get_token_full_name(request), prenotation.status, prenotation.total, prenotation.employee_uuid, executor, None, None)
+                    EmailsUtils.generate_employee_content(prenotation.user_email, prenotation.status, prenotation.from_hour, prenotation.to_hour, get_token_full_name(request), executor)
+                else:
+                    EmailsUtils.generate_customer_content(get_token_full_name(request), prenotation.status, prenotation.total, prenotation.employee_uuid, executor, availability_moments, new_employee_uuid)
+                    EmailsUtils.generate_employee_content(prenotation.user_email, prenotation.status, prenotation.from_hour, prenotation.to_hour, get_token_full_name(request), executor)
+
+            except Exception as e:
+                print("error: impossible send email !!!!!" + str(e))
+            prenotation.save() 
+
+
+            prenotation_data = PrenotationSerializer(prenotation).data
+            return JsonResponse({"prenotation": prenotation_data}, status=200)
+        except ValidationError:
+                return JsonResponse({"error": "Invalid UUID format"}, status=400)
+        except IntegrityError as e:
+            return JsonResponse({"error": "Database integrity error: " + str(e)}, status=400)
+        except OperationalError as e:
+            return JsonResponse({"error": "Database operational error: " + str(e)}, status=503)
+        except DatabaseError as e:
+            return JsonResponse({"error": "Database error: " + str(e)}, status=500)
+        except Exception as e:
+            return JsonResponse({"error": "An unexpected error occurred: " + str(e)}, status=500)   
 
 class AvailabilityView(APIView):
-    @jwt_base_authetication
     def get(self, request, type, date, center_uuid, employee_uuid=None):
         available_slots = DateUtils.generate_slots(datetime.time(8, 0), datetime.time(18, 0))
         
@@ -662,13 +699,7 @@ class AvailabilityView(APIView):
             start_datetime = UTC_timezone.localize(datetime.datetime.combine(date, start))
             end_datetime = UTC_timezone.localize(datetime.datetime.combine(date, end))
             for busy_start, busy_end in busy_hours_map.items():     #per ogni fascia occupata
-                print('====================================')
-                print(str(start_datetime))
-                print(str(end_datetime))
-                print(str(busy_start))
-                print(str(busy_end))
                 if (end_datetime<=busy_end and start_datetime>=busy_start):    
-                    print('right')
                     is_available = False                            
                     break
             if is_available:
@@ -676,6 +707,3 @@ class AvailabilityView(APIView):
 
         return JsonResponse({"availability": available}, status=200)
     
-'''    
-    def delete(self, request):
-        '''

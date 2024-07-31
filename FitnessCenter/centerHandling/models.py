@@ -142,6 +142,8 @@ class Prenotation(models.Model):
     STATUS_CHOICES = [
         ('pending', 'pending'),
         ('confirmed', 'confirmed'),
+        ('rejected', 'rejected'),
+        ('to cancel', 'to cancel'),
         ('cancelled', 'cancelled'),
         ('completed', 'completed'),
     ]

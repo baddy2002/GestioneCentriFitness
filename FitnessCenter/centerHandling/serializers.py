@@ -269,7 +269,7 @@ class PrenotationSerializer(serializers.ModelSerializer):
         return data
 
     def is_employee_available(self, employee_uuid, from_hour, to_hour):
-        print("available?")
+        print("available?" + str(employee_uuid) + str(from_hour) + str(to_hour))
         overlapping_prenotations1 = Prenotation.objects.filter(
             employee_uuid=employee_uuid,
             from_hour__lte=from_hour,
@@ -280,7 +280,10 @@ class PrenotationSerializer(serializers.ModelSerializer):
             from_hour__gte=from_hour,
             from_hour__lt=to_hour
         ).exists() 
-        
+        if not (overlapping_prenotations1 or overlapping_prenotations2):
+            print('yes')
+        else:
+            print('no')
         return not (overlapping_prenotations1 or overlapping_prenotations2)
 
     def find_best_employee(self, center_uuid, type, from_hour, to_hour):

@@ -1,10 +1,12 @@
 from urllib.parse import unquote
 from .models import Center, Employee, EmployeeBusyTrace
-from .serializers import ExitSerializer
+from .serializers import ExitSerializer, PrenotationSerializer
 import uuid
 from .producer import KafkaProducerService
 from .utils import DateUtils
 from django.db.models import Q
+import requests
+from django.conf import settings
 
 class EmployeeService:
     def __init__(self):
@@ -90,3 +92,35 @@ class EmployeeService:
         
         return employees  
     
+class PrenotationService:
+    @classmethod
+    def replaceEmployee(cls, prenotation):
+        serializer = PrenotationSerializer()
+        new_empolyee_uuid = serializer.find_best_employee(center_uuid=prenotation.center_uuid, type=prenotation.type,
+                                       from_hour=prenotation.from_hour, to_hour=prenotation.to_hour)
+
+        if new_empolyee_uuid:
+            prenotation.employee_uuid = new_empolyee_uuid
+            prenotation.save()
+            return new_empolyee_uuid
+        else:
+            return None
+        
+
+    @classmethod
+    def find_next_available_moments(cls, prenotation):
+
+        print(f'{settings.BACKEND_SERVICE_PROTOCOL}://{settings.BACKEND_SERVICE_DOMAIN}:{settings.BACKEND_SERVICE_PORT}/api/availability/{prenotation.type}/{prenotation.from_hour.date()}/{prenotation.center_uuid}')
+        response1 = requests.get(f'{settings.BACKEND_SERVICE_PROTOCOL}://{settings.BACKEND_SERVICE_DOMAIN}:{settings.BACKEND_SERVICE_PORT}/api/availability/{prenotation.type}/{prenotation.from_hour.date()}/{prenotation.center_uuid}')
+        response2 = requests.get(f'{settings.BACKEND_SERVICE_PROTOCOL}://{settings.BACKEND_SERVICE_DOMAIN}:{settings.BACKEND_SERVICE_PORT}/api/availability/{prenotation.type}/{prenotation.from_hour.date()}/{prenotation.center_uuid}/{prenotation.employee_uuid}')
+        if response1 and response1.json() and response2 and response2.json(): 
+            center_availability = response1.json().get('availability')
+            employee_availability = response2.json().get('availability')
+            if center_availability and len(center_availability) > 0:
+                center_availability = center_availability[0:5]
+            if employee_availability and len(employee_availability) > 0:
+                employee_availability = employee_availability[0:5]
+        else:
+            raise Exception(f"Error calculating the available moments, response1: {response1} \n response2: {response2}")
+        
+        return {"center_availability": center_availability, "employee_availability": employee_availability}

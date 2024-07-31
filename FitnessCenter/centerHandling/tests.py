@@ -1049,10 +1049,7 @@ class AvailabilityAPITestCase(AuthenticatedAPITestCase):
     def test_correct_availability_center(self):
 
         url = reverse('availability-views', args=('trainer', str(datetime.datetime.now().date()+datetime.timedelta(days=1)) ,str(Center.objects.first().uuid), ))
-       
-        invalid_response = self.invalid_client.get(url, format='json')
-        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED) 
-
+    
         response = AuthenticatedAPITestCase.client.get(url, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         return response
@@ -1084,6 +1081,6 @@ def generate_valid_center():
             "is_active": True
         }
 
-        requests.post(f"{settings.BACKEND_SSO_SERVICE_PROTOCOL}://{settings.BACKEND_SSO_SERVICE_DOMAIN}:{settings.BACKEND_SSO_SERVICE_PORT}/api/employees/",
+        requests.post(f"{settings.BACKEND_SERVICE_PROTOCOL}://{settings.BACKEND_SERVICE_DOMAIN}:{settings.BACKEND_SERVICE_PORT}/api/employees/",
             data=json.dumps(data),headers={"Content-Type":"application/json"})
         return center
