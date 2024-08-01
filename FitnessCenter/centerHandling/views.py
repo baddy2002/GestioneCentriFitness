@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.utils import timezone
+from django.shortcuts import render
 import datetime
 from os import getenv
 from django.http import JsonResponse
@@ -11,7 +12,7 @@ from rest_framework.views import APIView
 from django.core.exceptions import FieldError
 from .utils import DateUtils, EmailsUtils, PaymentsUtils
 from .services import EmployeeService, PrenotationService
-from .models import ( Employee, Exit, Center, Prenotation, Review)
+from .models import ( Employee, Exit, Center, Prenotation, Review, CustomerCredit, Documents)
 from .serializers import (EmployeeSerializer, ExitSerializer, CenterSerializer, PrenotationSerializer, ReviewSerializer)
 from django.db import IntegrityError, DatabaseError, OperationalError
 from django.core.exceptions import ValidationError
@@ -475,7 +476,9 @@ class ReviewView(APIView):
         
         serializer = ReviewSerializer(data=data)
         if serializer.is_valid():
-            # TODO: implementare controllo per capire se l'utente ha prenotato
+            prenotation = Prenotation.objects.filter(~Q(status='cancelled'), center_uuid=center_uuid, user_id = get_principal(request)).count()
+            if prenotation is None and prenotation < 0:
+                return JsonResponse({"error": "you never had a visit in this center!"}, status=400)
             review = serializer.save()
             return JsonResponse(serializer.data, status=201)
         return JsonResponse(serializer.errors, status=400)
@@ -562,12 +565,19 @@ class PrenotationView(APIView):
 
         serializer = PrenotationSerializer(data=data, context={'request': request})
         if serializer.is_valid():
+            totalCredit=0.00
+            customerCredits = CustomerCredit.objects.filter(user_id=get_principal(request)).all()
+            totalCredit += sum(customerCredit.credit for customerCredit in customerCredits)
             prenotation = serializer.save()
+            if float(serializer.data['total']) > float(totalCredit):
+                PaymentsUtils.pay(get_principal(request), float(serializer.data['total']) - float(totalCredit))
+            prenotation.status = 'confirmed'
+            prenotation.save()
             return JsonResponse(serializer.data, status=201)
         return JsonResponse(serializer.errors, status=400)
     
     @jwt_base_authetication
-    def get(self, request, uuid=None):
+    def getMethod(self, request, uuid=None):
         if uuid:
             try:
                 prenotation = get_object_or_404(Prenotation, uuid=uuid)
@@ -597,7 +607,7 @@ class PrenotationView(APIView):
                 return JsonResponse({"error": str(e)}, status=400)
             except FieldError:
                 return JsonResponse({"error": "Invalid orderBy parameter"}, status=400)
-            
+    '''           
     @jwt_base_authetication
     def put(self, request, uuid):
         try:
@@ -625,21 +635,21 @@ class PrenotationView(APIView):
             return JsonResponse({"error": "Invalid JSON"}, status=400)
         except ValidationError:
             return JsonResponse({"error": "Invalid UUID format"}, status=400)
-        
+    '''        
     @jwt_base_authetication
-    def delete(self, request, uuid): 
+    def delete(self, request, uuid):            #TODO: redirezione nella mail per viste di conferma rimborso o prenotazione.
         try:
             executor = 'customer'
             prenotation = get_object_or_404(Prenotation, uuid=uuid)
-            
-            if get_principal(request=request) != prenotation.user_id:           # non è stato l'utente a richiederlo
+            server = f'{settings.BACKEND_SERVICE_PROTOCOL}://{settings.BACKEND_SERVICE_DOMAIN}:{settings.BACKEND_SERVICE_PORT}'
+            if get_principal(request=request) == prenotation.user_id:           # non è stato l'utente a richiederlo
                 executor='employee'
                 new_employee_uuid = PrenotationService.replaceEmployee(prenotation)
                 availability_moments = PrenotationService.find_next_available_moments(prenotation)
                 
             prenotation.status='to cancel'
             producer_service = KafkaProducerService(bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS_EMAIL_WRITERS)
-
+            
             task_data = {
                 'name': get_token_full_name(request),
                 'prenotation_status': prenotation.status,
@@ -648,7 +658,9 @@ class PrenotationView(APIView):
                 'executor': executor,
                 'availability_moments': None,
                 'new_employee_uuid': None,
-                'recipient_email': get_token_email(request)
+                'recipient_email': get_token_email(request),
+                'prenotation_uuid': str(prenotation.uuid),
+                'server': server
             }
             if executor == 'customer':
                 employee = Employee.objects.filter(uuid=prenotation.employee_uuid).first()
@@ -671,7 +683,9 @@ class PrenotationView(APIView):
             else:
                 task_data.update({
                     'availability_moments': availability_moments,
-                    'new_employee_uuid': new_employee_uuid
+                    'new_employee_uuid': new_employee_uuid,
+                    'prenotation_center': prenotation.center_uuid,
+                    'prenotation_employee': prenotation.employee_uuid
                 })
                 producer_service.send_email_task({
                     'type': 'customer',
@@ -686,10 +700,15 @@ class PrenotationView(APIView):
                         'prenotation_to': prenotation.to_hour,
                         'employee_name': get_token_full_name(request),
                         'executor': executor,
-                        'recipient_email': get_token_email(request)
+                        'recipient_email': get_token_email(request),
+                        'prenotation_uuid': str(prenotation.uuid),
+                        'server': server,
                     }
                 })
-                
+            customerCredit = CustomerCredit()    
+            customerCredit.user_id = prenotation.user_id
+            customerCredit.credit = prenotation.total                                       # credito salvato
+            customerCredit.save()
             prenotation.save() 
 
             prenotation_data = PrenotationSerializer(prenotation).data
@@ -704,6 +723,42 @@ class PrenotationView(APIView):
             return JsonResponse({"error": "Database error: " + str(e)}, status=500)
         except Exception as e:
             return JsonResponse({"error": "An unexpected error occurred: " + str(e)}, status=500)   
+
+    def get(self, request, uuid=None, operation=None):
+        if operation is None:
+            return self.getMethod(request, uuid)
+        prenotation = get_object_or_404(Prenotation, uuid=uuid)
+        if request.META.get('Authorization') is None:
+            redirect(f'{settings.BACKEND_SERVICE_PROTOCOL}://{settings.BACKEND_SERVICE_DOMAIN}:{settings.BACKEND_SERVICE_PORT}')
+        if operation == 'accept':
+            prenotation = self.accept(prenotation)
+        elif operation == 'decline':
+            prenotation = self.decline(get_principal(request), prenotation)
+        else:
+            prenotation
+            return JsonResponse({"error": "The only operations supported are: accept or decline" + str(e)}, status=400)
+
+            # Verifica il successo dell'operazione
+        success = (operation == 'accept' and prenotation.status == 'confirmed') or \
+              (operation == 'decline' and prenotation.status == 'cancelled')
+
+        # Renderizza il template
+        return render(request, 'cancelPrenotationCustomerResponse.html', {
+            'prenotation': prenotation,
+            'operation': operation,
+            'success': success,
+        })
+    
+    def accept(self, prenotation):
+        prenotation.status = 'confirmed'
+        prenotation.save()
+        return prenotation
+    
+    def decline(self, user_id, prenotation):
+        PaymentsUtils.refund(user_id, prenotation.total)
+        prenotation.status= 'cancelled'
+        prenotation.save()
+        return prenotation
 
 class AvailabilityView(APIView):
     def get(self, request, type, date, center_uuid, employee_uuid=None):
@@ -755,3 +810,4 @@ class AvailabilityView(APIView):
 
         return JsonResponse({"availability": available}, status=200)
     
+

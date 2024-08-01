@@ -122,34 +122,61 @@
                     <p>These are the first available moments of your original <strong>{{ employee.type }}</strong>:</p>
                     <ul>
                         {% for interval in availability_moments.employee_availability %}
-                            <li>
-                                {{ interval }}
-                                <a href="#" class="btn btn-book">Prenota</a>
-                            </li>
+                            {% if interval|length == 2 %}
+                                <li>
+                                    <!-- Visualizza l'intervallo di tempo -->
+                                    {{ interval.0 }} - {{ interval.1 }}
+                                    <!-- Costruisce il link per prenotare -->
+                                    <a href="{{ server }}/api/prenotations/?select.center={{prenotation_center}}&select.employee={{prenotation_employee}}&select.from={{ interval.0 }}&select.end={{ interval.1 }}" class="btn btn-book">Prenota</a>
+                                </li>
+                            {% else %}
+                                <!-- Gestione degli errori, nel caso l'array non contenga esattamente due elementi -->
+                                <li>
+                                    Intervallo non valido.
+                                </li>
+                            {% endif %}
                         {% endfor %}
-                    </ul>
+                        </ul>
                 </div>
             {% else %}
                 <p>We were not able to find a substitute. Here you can see the first available moments for your <strong>{{ employee.type }}</strong>:</p>
                 <div class="availability">
                     <ul>
                         {% for interval in availability_moments.employee_availability %}
-                            <li>
-                                {{ interval }}
-                                <a href="#" class="btn btn-book">Prenota</a>
-                            </li>
+                            {% if interval|length == 2 %}
+                                <li>
+                                    <!-- Visualizza l'intervallo di tempo -->
+                                    {{ interval.0 }} - {{ interval.1 }}
+                                    <!-- Costruisce il link per prenotare -->
+                                    <a href="{{ server }}/api/prenotations/?select.center={{prenotation_center}}&select.employee={{prenotation_employee}}&select.from={{ interval.0 }}&select.end={{ interval.1 }}" class="btn btn-book">Prenota</a>
+                                </li>
+                            {% else %}
+                                <!-- Gestione degli errori, nel caso l'array non contenga esattamente due elementi -->
+                                <li>
+                                    Intervallo non valido.
+                                </li>
+                            {% endif %}
                         {% endfor %}
-                    </ul>
+                        </ul>
                 </div>
                 <p>Alternatively, you can choose another <strong>{{ employee.type }}</strong> of the center:</p>
                 <div class="availability">
                     <ul>
-                        {% for interval in availability_moments.center_availability %}
+                    {% for interval in availability_moments.center_availability %}
+                        {% if interval|length == 2 %}
                             <li>
-                                {{ interval }}
-                                <a href="#" class="btn btn-book">Prenota</a>
+                                <!-- Visualizza l'intervallo di tempo -->
+                                {{ interval.0 }} - {{ interval.1 }}
+                                <!-- Costruisce il link per prenotare -->
+                                <a href="{{ server }}/api/prenotations/?select.center={{prenotation_center}}&select.from={{ interval.0 }}&select.end={{ interval.1 }}" class="btn btn-book">Prenota</a>
                             </li>
-                        {% endfor %}
+                        {% else %}
+                            <!-- Gestione degli errori, nel caso l'array non contenga esattamente due elementi -->
+                            <li>
+                                Intervallo non valido.
+                            </li>
+                        {% endif %}
+                    {% endfor %}
                     </ul>
                 </div>
             {% endif %}
@@ -161,9 +188,11 @@
             {% else %}
                 <p>Please choose if  prenotate a new visit for free or simply decline to have a refund:</p>
             {% endif %}
-
-            <a href="#" class="btn btn-accept">New Prenotation</a>
-            <a href="#" class="btn btn-decline">Decline</a>
+            {% if new_employee %}
+                <a href="{{ server }}/api/prenotations/{{prenotation_uuid}}accept" class="btn btn-accept">Accept</a>
+            {% endif %}
+            <a href="{{ server }}/api/prenotations/" class="btn btn-accept">New Prenotation</a>
+            <a href="{{ server }}/api/prenotations/{{prenotation_uuid}}/decline" class="btn btn-decline">Decline</a>
         {% endif %}
     </div>
 </body>

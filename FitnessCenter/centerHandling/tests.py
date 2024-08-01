@@ -7,6 +7,7 @@ from django.conf import settings
 from rest_framework import status 
 from rest_framework.test import APIClient, APITestCase
 from .models import Employee, Exit, Center, Prenotation, Review
+import uuid
 import json
 import requests
 import jwt
@@ -774,10 +775,11 @@ class CenterAPITestCase(AuthenticatedAPITestCase):
 
 class ReviewAPITestCase(AuthenticatedAPITestCase):
     def setUp(self):
-        review_test = EmployeeAPITestCase()
+        review_test = PrenotationAPITestCase()
         review_test.setUp()
-        review_test.test_post_valid_employee()                          #creo un center
-        self.url = reverse('review-views', args=(str(Center.objects.first().uuid), ))
+        review_test.test_post_valid_prenotation()                          
+        prenotation = Prenotation.objects.first()
+        self.url = reverse('review-views', args=(str(Center.objects.filter(uuid=uuid.UUID(prenotation.center_uuid)).first().uuid), ))
         self.invalid_client = APIClient()
 
     def test_post_missing_fields(self):                                                 #assicura che non venga persistito se mancano campi
@@ -808,11 +810,10 @@ class ReviewAPITestCase(AuthenticatedAPITestCase):
 
 
     def test_post_valid_review(self):                 #assicura che venga persistito in caso di dati corretti
-        
+
         data = {
             "text": "test text for review",
             "score": 1,
-            "center_uuid": str(Center.objects.first().uuid),
             "exec_time": "2024-07-24T12:00:00",
             "is_active": True
         }
@@ -1036,6 +1037,34 @@ class PrenotationAPITestCase(AuthenticatedAPITestCase):
         
         return response
     
+    def test_delete_prenotation(self):                         #controlla che un utente con id corretto venga disattiva, controlla che gli errori siano consoni
+
+        response = self.test_post_valid_prenotation()         #crea un utente(con test case non è assicurato l'ordine dei test)
+        uuid = response.json().get('uuid')
+        delete_url=self.url+uuid+"incorrect"
+        invalid_response = self.invalid_client.get(delete_url)
+        self.assertEqual(invalid_response.status_code, status.HTTP_401_UNAUTHORIZED)       
+        response = AuthenticatedAPITestCase.client.delete(delete_url)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        response = AuthenticatedAPITestCase.client.get(self.url+'57742429-8895-4611-9463-032254433211')  #uuid rando probabilità che esista nel db 36^32
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertIn('detail', response.json())
+        self.assertEqual(response.json().get('detail'), "No Exit matches the given query.")
+
+        delete_url=self.url+uuid
+        response = AuthenticatedAPITestCase.client.delete(delete_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response_data = response.json()
+        self.assertIn('prenotation', response_data)
+        self.assertEqual(response_data['prenotation'].get('status'), 'to cancel')
+        
+        # Verifica che il dipendente sia stato contrassegnato come inattivo
+        exit_data = Exit.objects.get(uuid=uuid)
+        self.assertFalse(exit_data.is_active)
+
+
+
 class AvailabilityAPITestCase(AuthenticatedAPITestCase):
     def setUp(self):
         self.invalid_client = APIClient()

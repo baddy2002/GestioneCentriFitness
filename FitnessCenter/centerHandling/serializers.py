@@ -3,7 +3,7 @@ from .utils import DateUtils
 from .tokenService import get_principal, get_token_email
 from rest_framework import serializers
 from django.core.exceptions import ValidationError
-from .models import Employee, EmployeeBusyTrace, Exit, Center, Prenotation, Review
+from .models import Employee, Exit, Center, Prenotation, Review
 import re
 import uuid
 from django.db import models
@@ -264,12 +264,10 @@ class PrenotationSerializer(serializers.ModelSerializer):
         data['total'] = self.calculate_total_price(data['type'], data['from_hour'], data['to_hour'], center_uuid)
         data['user_email'] = get_token_email(request)
         data['status'] = 'pending'
-        data['status'] = 'confirmed' 
 
         return data
 
     def is_employee_available(self, employee_uuid, from_hour, to_hour):
-        print("available?" + str(employee_uuid) + str(from_hour) + str(to_hour))
         overlapping_prenotations1 = Prenotation.objects.filter(
             employee_uuid=employee_uuid,
             from_hour__lte=from_hour,
@@ -280,10 +278,7 @@ class PrenotationSerializer(serializers.ModelSerializer):
             from_hour__gte=from_hour,
             from_hour__lt=to_hour
         ).exists() 
-        if not (overlapping_prenotations1 or overlapping_prenotations2):
-            print('yes')
-        else:
-            print('no')
+
         return not (overlapping_prenotations1 or overlapping_prenotations2)
 
     def find_best_employee(self, center_uuid, type, from_hour, to_hour):

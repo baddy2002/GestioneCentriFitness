@@ -66,7 +66,7 @@ class EmailKafkaConsumerService:
         elif email_type == 'employee':
             self.send_employee_email(**data['data'])
 
-    def send_customer_email(self, name, prenotation_status, prenotation_total, employee_uuid, executor, availability_moments, new_employee_uuid, recipient_email):
+    def send_customer_email(self, name, prenotation_status, prenotation_total, employee_uuid, executor, availability_moments, new_employee_uuid, recipient_email, prenotation_uuid, server, prenotation_center, prenotation_employee):
         employee = Employee.objects.filter(uuid=uuid.UUID(employee_uuid)).first()
         new_employee = None
         if new_employee_uuid:
@@ -79,7 +79,11 @@ class EmailKafkaConsumerService:
             'employee': employee,
             'executor': executor,
             'availability_moments': availability_moments,
-            'new_employee': new_employee
+            'new_employee': new_employee,
+            'prenotation_uuid': prenotation_uuid,
+            'server': server,
+            'prenotation_center': prenotation_center,
+            'prenotation_employee': prenotation_employee
         }
 
         html_content = render_to_string('deletePrenotationCustomerEmail.html', context)
@@ -100,14 +104,17 @@ class EmailKafkaConsumerService:
         email.attach('customerBody.pdf', pdf_file.read(), 'application/pdf')
         email.send()
 
-    def send_employee_email(self, customer_email, prenotation_status, prenotation_from, prenotation_to, employee_name, executor, recipient_email):
+    def send_employee_email(self, customer_email, prenotation_status, prenotation_from, prenotation_to, employee_name, executor, recipient_email, prenotation_uuid, server):
+        print ('server = ' +str(server) )
         context = {
             'customer_email': customer_email,
             'prenotation_status': prenotation_status,
             'prenotation_from': prenotation_from,
             'prenotation_to': prenotation_to,
             'employee_name': employee_name,
-            'executor': executor
+            'executor': executor,
+            'prenotation_uuid': prenotation_uuid,
+            'server': server
         }
 
         html_content = render_to_string('deletePrenotationEmployeeEmail.html', context)

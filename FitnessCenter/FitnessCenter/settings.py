@@ -32,8 +32,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'corsheaders',                              #cors per next js
+    'corsheaders',                              #cors per fe con next
+    'gdstorage',
     'centerHandling',
+
 ]
 
 MIDDLEWARE = [

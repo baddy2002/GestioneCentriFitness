@@ -1,5 +1,5 @@
 from urllib.parse import unquote
-from .models import Center, Employee, EmployeeBusyTrace
+from .models import Center, Employee
 from .serializers import ExitSerializer, PrenotationSerializer
 import uuid
 from .producer import KafkaProducerService

@@ -29,6 +29,7 @@ class KafkaProducerService:
 
 
     def send_email_task(self, data):
+        print(data)
         self.send_employee_invitation('email-tasks', data)
 
     

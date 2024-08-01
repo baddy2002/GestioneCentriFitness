@@ -64,11 +64,11 @@ class DateUtils():
 
 class PaymentsUtils():
     @classmethod
-    def pay(cls):
+    def pay(cls, user_id, amount):
         return
 
     @classmethod
-    def refund(cls):
+    def refund(cls, user_id, amount):
         return
 
 class EmailsUtils():

@@ -1,5 +1,9 @@
 from django.db import models
 import uuid
+from gdstorage.storage import GoogleDriveStorage
+
+
+
 class Employee(models.Model):
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     TRAINER = 'trainer'
@@ -149,8 +153,61 @@ class Prenotation(models.Model):
     ]
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
 
-class EmployeeBusyTrace(models.Model):
-    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)   
-    employee_uuid = models.CharField(max_length=255)
-    prenotation_hours = models.DecimalField(max_digits=3, decimal_places=1, default=0)
-    date = models.DateField(auto_now_add=True)
+class CustomerCredit(models.Model):
+    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user_id =  models.CharField()
+    credit = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+gd_storage = GoogleDriveStorage()
+
+class Documents(models.Model):
+    filename = models.CharField(max_length=255, primary_key=True)
+    filetype = models.CharField(max_length=10, blank=True)
+    filesize = models.PositiveIntegerField(blank=True, null=True)
+    
+    TYPE_CHOICES = [
+        ('attachment', 'attachment'),
+        ('training', 'training'),
+        ('diet', 'diet'),
+        ('other', 'other'),
+    ]
+    type =  models.CharField(max_length=10, choices=TYPE_CHOICES)
+    filedata = models.FileField(upload_to='documents/', storage=gd_storage)
+    def __str__(self):
+        return str(self.filename)
+   
+
+class CreditCard(models.Model):
+    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    user_id = models.CharField()
+    user_email = models.EmailField()
+    card_number = models.CharField()
+    card_holder = models.CharField()
+    card_cvc = models.PositiveSmallIntegerField()
+    STATUS_CHOICES = [
+        ('pending', 'pending'),
+        ('confirmed', 'confirmed'),
+        ('rejected', 'rejected'),
+        ('to cancel', 'to cancel'),
+        ('cancelled', 'cancelled'),
+        ('completed', 'completed'),
+    ]
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+
+
+class Payment(models.Model):
+    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    user_id = models.CharField()
+    card_uuid = models.CharField()
+
+    STATUS_CHOICES = [
+        ('pending', 'pending'),
+        ('confirmed', 'confirmed'),
+        ('rejected', 'rejected'),
+        ('to cancel', 'to cancel'),
+        ('cancelled', 'cancelled'),
+        ('completed', 'completed'),
+    ]
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')

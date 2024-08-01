@@ -1,6 +1,6 @@
 from kafka import KafkaConsumer
 import json
-from .models import Employee, EmployeeBusyTrace, Exit
+from .models import Employee, Exit
 from django.conf import settings
 class KafkaConsumerService:
     def __init__(self, bootstrap_servers):
