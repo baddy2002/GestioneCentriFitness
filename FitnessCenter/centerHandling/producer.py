@@ -23,8 +23,7 @@ class KafkaProducerService:
         )
 
     def send_employee_invitation(self, topic, data):
-        print('send mail to topic: '+str(topic) +" on " + " " + str(self.producer))
-        print('data of message: ' + str(data))
+
         self.producer.send(topic, value=data)
         self.producer.flush()
 
