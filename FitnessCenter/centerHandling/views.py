@@ -650,7 +650,6 @@ class PrenotationView(APIView):
                 'new_employee_uuid': None,
                 'recipient_email': get_token_email(request)
             }
-            
             if executor == 'customer':
                 employee = Employee.objects.filter(uuid=prenotation.employee_uuid).first()
                 producer_service.send_email_task({
@@ -690,12 +689,11 @@ class PrenotationView(APIView):
                         'recipient_email': get_token_email(request)
                     }
                 })
+                
+            prenotation.save() 
 
-                prenotation.save() 
-
-
-                prenotation_data = PrenotationSerializer(prenotation).data
-                return JsonResponse({"prenotation": prenotation_data}, status=200)
+            prenotation_data = PrenotationSerializer(prenotation).data
+            return JsonResponse({"prenotation": prenotation_data}, status=200)
         except ValidationError:
                 return JsonResponse({"error": "Invalid UUID format"}, status=400)
         except IntegrityError as e:
@@ -754,6 +752,6 @@ class AvailabilityView(APIView):
                     break
             if is_available:
                 available.append((start, end))
-        print('returned')
+
         return JsonResponse({"availability": available}, status=200)
     

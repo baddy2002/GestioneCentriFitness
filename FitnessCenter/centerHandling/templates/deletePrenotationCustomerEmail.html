@@ -153,8 +153,16 @@
                     </ul>
                 </div>
             {% endif %}
-            <p>Please choose if you accept or decline the choices:</p>
-            <a href="#" class="btn btn-accept">Accept</a>
+
+           
+            {% if new_employee %}
+                <p>If you are ok with the change you don't need to do nothing, 
+                    if not you can prenotate a new visit for free or simply decline to have a refund</p>
+            {% else %}
+                <p>Please choose if  prenotate a new visit for free or simply decline to have a refund:</p>
+            {% endif %}
+
+            <a href="#" class="btn btn-accept">New Prenotation</a>
             <a href="#" class="btn btn-decline">Decline</a>
         {% endif %}
     </div>
