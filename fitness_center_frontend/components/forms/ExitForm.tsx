@@ -4,9 +4,13 @@ import React, { useState } from 'react';
 import { useAddExitMutation } from '@/redux/features/centerApiSLice';
 import { useParams } from 'next/navigation';
 
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toISOString().split('T')[0]; // Formatta la data in YYYY-MM-DD
+const formatDate = (dateString: string): string | null => {
+  if (dateString != null && dateString != ""){
+
+    const date = new Date(dateString);
+    return date.toISOString().split('T')[0]; 
+  }
+  return null
 };
 
 const ExitForm: React.FC = () => {
@@ -42,22 +46,22 @@ const ExitForm: React.FC = () => {
       await addExit({
         amount: Number(formData.amount),
         type: formData.type,
-        employee_uuid: formData.employee_uuid,
-        frequency: Number(formData.frequency),
+        employee_uuid: formData.employee_uuid ?? null,
+        frequency: Number(formData.frequency ?? null),
         description: formData.description,
-        start_date:formatDate(formData.start_date),
-        expiration_date: formatDate(formData.expiration_date),
+        start_date:formatDate(formData.start_date)+"",
+        expiration_date: formatDate(formData.expiration_date) ?? null,
         center_uuid: uuid as string,
       }).unwrap();
       // Reset form or handle success as needed
       setFormData({
         amount: '',
         type: '',
-        employee_uuid: '',
-        frequency: '',
+        employee_uuid: '' ?? null,
+        frequency: '' ?? null,
         description: '',
         start_date: '',
-        expiration_date: '',
+        expiration_date: '' ?? null,
       });
     } catch (err) {
       console.error('Failed to save exit: ', err);
@@ -116,7 +120,6 @@ const ExitForm: React.FC = () => {
             value={formData.frequency}
             onChange={handleChange}
             className="mt-1 p-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
           />
         </div>
         <div className="mb-5">

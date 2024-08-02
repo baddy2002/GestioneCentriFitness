@@ -114,7 +114,9 @@ class ExitSerializer(serializers.ModelSerializer):
 
             if employee is None:
                 raise serializers.ValidationError("Employee with this employee_uuid does not exist.")
-
+        elif exit_type == 'tax':
+            if data.get('frequency') == None or data.get('frequency') <= 0:
+                raise serializers.ValidationError("Tax's frequency should not be null or 0.")
         
         if expiration_date is not None and start_date is not None:
             if expiration_date < start_date:
@@ -137,6 +139,8 @@ class CenterSerializer(serializers.ModelSerializer):
             'hour_trainer_price',
             'street',
             'house_number',
+            'hour_nutritionist_price',
+            'hour_trainer_price',
             'is_active',
         ]
         read_only_fields = ['uuid']
@@ -144,10 +148,17 @@ class CenterSerializer(serializers.ModelSerializer):
     def validate(self, data):
         if self.instance is not None:
             uuid = self.instance.uuid
+        n_price = data['hour_nutritionist_price']
+        t_price = data['hour_trainer_price']
+        if n_price is None or n_price <= 5:
+            raise serializers.ValidationError("The nutritionist price must be at least the minimum import(5).")
+        if t_price is None or t_price <= 5:
+            raise serializers.ValidationError("The trainer price must be at least the minimum import(5).")
         province = data.get('province')
         city = data.get('city')
         street = data.get('street')
         house_number = data.get('house_number')
+        
         center = Center.objects.filter(province=province, city=city, street=street, house_number=house_number).first()
         
         if center is not None:

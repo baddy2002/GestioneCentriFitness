@@ -21,7 +21,9 @@ const CenterForm: React.FC = () => {
     provincia: '',
     city: '',
     via: '',
-    house_number: ''
+    house_number: '',
+    hour_nutritionist_price: '',
+    hour_trainer_price: '',
   });
   
   const [addCenter, { isLoading, isSuccess, isError, error }] = useAddCenterMutation();
@@ -45,6 +47,8 @@ const CenterForm: React.FC = () => {
         city: formData.city,
         street: formData.via,
         house_number: Number(formData.house_number),
+        hour_nutritionist_price: Number(formData.hour_nutritionist_price),
+        hour_trainer_price: Number(formData.hour_trainer_price),
         
       }).unwrap();
       // Opzionale: reimposta il modulo o gestisci il successo come desiderato
@@ -54,7 +58,9 @@ const CenterForm: React.FC = () => {
         provincia: '',
         city: '',
         via: '',
-        house_number: ''
+        house_number: '',
+    hour_nutritionist_price: '',
+    hour_trainer_price: '',
       });
     } catch (err) {
       console.error('Failed to save center: ', err);
@@ -136,6 +142,30 @@ const CenterForm: React.FC = () => {
             id="house_number"
             name="house_number"
             value={formData.house_number}
+            onChange={handleChange}
+            className="mt-1 p-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
+        </div>
+        <div className="mb-5">
+          <label htmlFor="hour_nutritionist_price" className="block text-gray-700 text-lg font-medium">Hourly price for a prenotation with your nutrition:</label>
+          <input
+            type="number"
+            id="hour_nutritionist_price"
+            name="hour_nutritionist_price"
+            value={formData.hour_nutritionist_price}
+            onChange={handleChange}
+            className="mt-1 p-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
+        </div>
+        <div className="mb-5">
+          <label htmlFor="hour_trainer_price" className="block text-gray-700 text-lg font-medium">Hourly price for a prenotation with your trainer:</label>
+          <input
+            type="number"
+            id="hour_trainer_price"
+            name="hour_trainer_price"
+            value={formData.hour_trainer_price}
             onChange={handleChange}
             className="mt-1 p-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             required

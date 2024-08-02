@@ -4,9 +4,13 @@ import React, { useState } from 'react';
 import { useAddEmployeeMutation } from '@/redux/features/centerApiSLice';
 import { useParams } from 'next/navigation';
 
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toISOString().split('T')[0]; // Formatta la data in YYYY-MM-DD
+const formatDate = (dateString: string): string | null => {
+  if (dateString != null && dateString != ""){
+
+    const date = new Date(dateString);
+    return date.toISOString().split('T')[0]; 
+  }
+  return null
 };
 
 const EmployeeForm: React.FC = () => {
@@ -42,14 +46,14 @@ const EmployeeForm: React.FC = () => {
       await addEmployee({
         first_name: formData.first_name,
         last_name: formData.last_name,
-        DOB: formatDate(formData.DOB),
+        DOB: formatDate(formData.DOB)+"",
         salary: Number(formData.salary),
         fiscalCode: formData.fiscalCode,
         email: formData.email,
         type: formData.type,
-        hiring_date: formatDate(formData.hiring_date),
+        hiring_date: formatDate(formData.hiring_date)+"",
         end_contract_date: formData.end_contract_date ? formatDate(formData.end_contract_date) : null,
-        attachments_uuid: formData.attachments_uuid,
+        attachments_uuid: formData.attachments_uuid ? formData.attachments_uuid : null,
         center_uuid: uuid as string 
       }).unwrap();
       // Reset form or handle success as needed

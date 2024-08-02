@@ -11,6 +11,8 @@ export interface Center {
   city: string;
   street: string;
   house_number: number;
+  hour_nutritionist_price: number,
+  hour_trainer_price: number,
   is_active: boolean;
 }
 
@@ -34,7 +36,7 @@ export interface Employee {
   type: string;
   hiring_date: string;
   end_contract_date: string | null;
-  attachments_uuid: string;
+  attachments_uuid: string | null;
   center_uuid: string;
   is_active: boolean;
 }

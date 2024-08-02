@@ -637,7 +637,7 @@ class PrenotationView(APIView):
             return JsonResponse({"error": "Invalid UUID format"}, status=400)
     '''        
     @jwt_base_authetication
-    def delete(self, request, uuid):            #TODO: redirezione nella mail per viste di conferma rimborso o prenotazione.
+    def delete(self, request, uuid):            #TODO: gestire token da chiamate mail
         try:
             executor = 'customer'
             prenotation = get_object_or_404(Prenotation, uuid=uuid)

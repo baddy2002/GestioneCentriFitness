@@ -1050,7 +1050,7 @@ class PrenotationAPITestCase(AuthenticatedAPITestCase):
         response = AuthenticatedAPITestCase.client.get(self.url+'57742429-8895-4611-9463-032254433211')  #uuid rando probabilità che esista nel db 36^32
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertIn('detail', response.json())
-        self.assertEqual(response.json().get('detail'), "No Exit matches the given query.")
+        self.assertEqual(response.json().get('detail'), "No Prenotation matches the given query.")
 
         delete_url=self.url+uuid
         response = AuthenticatedAPITestCase.client.delete(delete_url)
