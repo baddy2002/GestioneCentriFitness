@@ -10,12 +10,11 @@ const Page: React.FC = () => {
   const {  employeesData } = useSelector((state: RootState) => ({
     employeesData: state.employees.employeeData,
   }));
-  
+
 
   // Determina i dati e il titolo basato sull'entità selezionata
-  let data: any[] = [];
+  let data: any[] = employeesData;
   let title = 'Employees';
-
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">{title}</h1>

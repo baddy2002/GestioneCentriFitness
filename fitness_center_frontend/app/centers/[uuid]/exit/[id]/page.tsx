@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { useParams } from 'next/navigation';
-import { useFetchCentersQuery } from '@/redux/features/centerApiSLice';
+import { useFetchExitsQuery } from '@/redux/features/centerApiSLice';
 import Field from '@/components/common/Field';
 import { UserRole } from '@/components/common/Menu'; 
 import { useState, useEffect } from 'react';
@@ -11,8 +11,8 @@ import { useUserGroupsQuery } from '@/redux/features/authApiSlice';
 
 
 const CenterDetails: React.FC = () => {
-  const { uuid } = useParams();
-  const { data: centersData } = useFetchCentersQuery();
+  const { id } = useParams();
+  const { data: exitsData } = useFetchExitsQuery();
   const [userRoles, setUserRoles] = useState<UserRole[]>(['customer']);
   const { data: group } = useUserGroupsQuery();
   
@@ -22,7 +22,7 @@ const CenterDetails: React.FC = () => {
     }
   }, [group]);
 
-  const center = centersData?.centers.find(c => c.uuid === uuid);
+  const exit = exitsData?.centers.find(c => c.uuid === uuid);
 
   if (!center) {
     return <p className="p-4 text-red-500">Centro non trovato</p>;

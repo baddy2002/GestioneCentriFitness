@@ -7,13 +7,13 @@ import { Employee, Center, Exit } from '@/redux/features/centerApiSLice';
 
 const Page: React.FC = () => {
   // Ottieni i dati e l'entità selezionata dallo stato globale
-  const {  employeesData } = useSelector((state: RootState) => ({
-    employeesData: state.employees.employeeData,
+  const {  exitsData } = useSelector((state: RootState) => ({
+    exitsData: state.exits.exitData,
   }));
   
 
   // Determina i dati e il titolo basato sull'entità selezionata
-  let data: any[] = [];
+  let data: any[] = exitsData;
   let title = 'Employees';
 
   return (
@@ -22,14 +22,16 @@ const Page: React.FC = () => {
       {data.length > 0 ? (
         <ul>
           {data.map(item => {
-            let linkHref=`/centers/${item.center_uuid}/employees/${item.uuid}`
+            let linkHref=`/centers/${item.center_uuid}/exit/${item.uuid}`
 
             return (
               <li key={item.uuid} className="border-b border-gray-400 pb-4 mb-4 flex justify-between items-center">
                 <div>
-                    <>
-                      <h2 className="text-xl font-semibold">{`${item.first_name || 'Nome non disponibile'} ${item.last_name || 'Cognome non disponibile'}`}</h2>
-                      {item.DOB && <p>{`Data di nascita: ${item.DOB}`}</p>}
+                  <>
+                      <h2 className="text-xl font-semibold">{item.description || 'Descrizione non disponibile'}</h2>
+                      <p>{`Tipo: ${item.type || 'Tipo non disponibile'}`}</p>
+                      <p>{`Importo: ${item.amount || 'Importo non disponibile'}`}</p>
+                      <p>{`Frequenza: ${item.frequency || 'Frequenza non disponibile'} mesi`}</p>
                     </>
                 </div>
                 

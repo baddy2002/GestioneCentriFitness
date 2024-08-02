@@ -139,7 +139,7 @@ const centersApiSlice = centerApiSlice.injectEndpoints({
         return queryString;
       },
     }),
-    fetchExits: builder.query<FetchExitsResponse, FetchExitsParams>({
+    fetchExits: builder.query<FetchExitsResponse, FetchExitsParams | void>({
       query: (params) => {
         let queryString = '/exits/';
         const queryParams = new URLSearchParams();

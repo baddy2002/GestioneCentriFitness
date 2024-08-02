@@ -181,8 +181,10 @@ export default function CenterDetailLayout({ children }: { children: React.React
             break;
         }
       }
-      
-      router.push('/centers');
+      if(entity === 'exits')
+        router.push(`/centers/${uuid}/exit`);
+      else
+        router.push(`/centers/${uuid}/employee`);
     } catch (error) {
       console.error('Error fetching entities:', error);
     }
@@ -195,7 +197,7 @@ export default function CenterDetailLayout({ children }: { children: React.React
     , 
     { text: 'Add Employee', href: `/centers/${center?.uuid}/employee/add`, requiredRole: ['manager', 'admin'] },
     { text: 'Add Exit', href: `/centers/${center?.uuid}/exit/add`, requiredRole: ['manager', 'admin'] },
-    { text: 'Filters', action: () => {setIsModalOpen(true); setFilters(prev => ({ ...prev, open: true })); },
+    { text: 'Filters', action: () => {if(entity === 'centers') {setEntity('employees'); dispatch(setSelectedEntity('employees'))}; setIsModalOpen(true); setFilters(prev => ({ ...prev, open: true })); },
       requiredRole: ['customer', 'trainer', 'nutritionist', 'manager', 'admin']
     },
     { text: 'Center Employees', action: async () => {
@@ -208,7 +210,7 @@ export default function CenterDetailLayout({ children }: { children: React.React
               dispatch(setEmployeesData(result.data.employees));
             }
             dispatch(setSelectedEntity('employees'));
-            router.push('/centers');
+            router.push(`/centers/${uuid}/employee`);
           } else {
             console.log('No data received for all employees');
           }
@@ -224,12 +226,11 @@ export default function CenterDetailLayout({ children }: { children: React.React
         try {
           const result = await refetch();
           if (result && result.data) {
-            console.log("data"+result.data);
             if ('exits' in result.data) {
               dispatch(setExitsData(result.data.exits));
             }
             dispatch(setSelectedEntity('exits'));
-            router.push('/centers');
+            router.push(`/centers/${uuid}/exit`);
           } else {
             console.log('No data received for all exits');
           }
