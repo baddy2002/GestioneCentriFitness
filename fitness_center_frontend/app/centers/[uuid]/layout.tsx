@@ -5,8 +5,10 @@ import { Footer, Navbar, PageLayout } from '@/components/common';
 import CustomProvider from '@/redux/provider';
 import { Setup } from '@/components/utils';
 import { Inter } from 'next/font/google';
+import { RootState } from '@/redux/store';
 import FilterModal from '@/components/common/FilterModal';
 import React, { useEffect, useState, useCallback } from 'react';
+import { useSelector } from 'react-redux';
 import { useAppSelector, useAppDispatch } from '@/redux/hooks';
 import { setCentersData, clearCentersData } from '@/redux/features/centersSlices';
 import { setEmployeesData, clearEmployeesData } from '@/redux/features/employeesSlices';
@@ -39,7 +41,13 @@ type Filters = EmployeeFilters | ExitFilters;
 
 type FilterField = { label: string; name: string; placeholder: string };
 
-const filtersFields: Record<'employees' | 'exits', FilterField[]> = {
+const filtersFields: Record<'centers' | 'employees' | 'exits', FilterField[]> = {
+  centers:[
+    { label: 'Order By', name: 'orderBy', placeholder: 'e.g., last_name,-first_name' },
+    { label: 'First Name', name: 'first_name', placeholder: 'First Name' },
+    { label: 'Last Name', name: 'last_name', placeholder: 'Last Name' },
+    { label: 'Type', name: 'type', placeholder: 'Type' },
+  ],
   employees: [
     { label: 'Order By', name: 'orderBy', placeholder: 'e.g., last_name,-first_name' },
     { label: 'First Name', name: 'first_name', placeholder: 'First Name' },
@@ -90,7 +98,9 @@ export default function CenterDetailLayout({ children }: { children: React.React
     }
    /*<=================================END REDIRECTING==============================>*/ 
 
-  const [entity, setEntity] = useState<'employees' | 'exits'>('employees');
+
+  const selectedEntity = useSelector((state: RootState) => state.ui.selectedEntity);
+  const [entity, setEntity] = useState<'centers' | 'employees' | 'exits'>(selectedEntity);
   const [filters, setFilters] = useState<EmployeeFilters | ExitFilters>({
     orderBy: '',
     description: '',
@@ -104,7 +114,6 @@ export default function CenterDetailLayout({ children }: { children: React.React
 
   const [appliedFilters, setAppliedFilters] = useState<EmployeeFilters | ExitFilters>(filters);
   const center = centersData?.centers.find(c => c.uuid === uuid);
-
   const getParams = () => {
     const commonParams = {
       orderBy: appliedFilters.orderBy
@@ -144,6 +153,8 @@ export default function CenterDetailLayout({ children }: { children: React.React
 
     // Resettare i dati esistenti prima di effettuare una nuova richiesta
     switch (entity) {
+      case 'centers':
+        dispatch(clearCentersData());
       case 'employees':
         dispatch(clearEmployeesData());
         break;
@@ -160,11 +171,13 @@ export default function CenterDetailLayout({ children }: { children: React.React
             if ('employees' in result.data) {
               dispatch(setEmployeesData(result.data.employees));
             }
+            dispatch(setSelectedEntity('employees'));
             break;
           case 'exits':
             if ('exits' in result.data) {
               dispatch(setExitsData(result.data.exits));
             }
+            dispatch(setSelectedEntity('exits'));
             break;
         }
       }

@@ -8,15 +8,19 @@ import { usePathname } from 'next/navigation'
 
 
 const Page: React.FC = () => {
+  
   // Ottieni i dati e l'entità selezionata dallo stato globale
   const { centersData, employeesData, exitsData, selectedEntity } = useSelector((state: RootState) => ({
+    
     centersData: state.centers.centerData,
     employeesData: state.employees.employeeData,
     exitsData: state.exits.exitData,
     selectedEntity: state.ui.selectedEntity, 
   }));
-  
-
+  console.log("centers: "+centersData);
+  console.log("employeesData: "+employeesData);
+  console.log("exitsData: "+exitsData);
+  console.log("selectedEntity: "+selectedEntity);
   // Determina i dati e il titolo basato sull'entità selezionata
   let data: any[] = [];
   let title = '';
