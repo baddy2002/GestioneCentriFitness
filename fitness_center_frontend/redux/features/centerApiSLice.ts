@@ -143,16 +143,16 @@ const centersApiSlice = centerApiSlice.injectEndpoints({
       query: (params) => {
         let queryString = '/exits/';
         const queryParams = new URLSearchParams();
-        if (params.managerId) queryParams.append('obj.manager_id', params.managerId);
-        if (params.orderBy) {
+        if (params?.managerId) queryParams.append('obj.manager_id', params.managerId);
+        if (params?.orderBy) {
           console.log(`fetchCentersWithManagerId - orderBy: ${params.orderBy}`); // Log di debug
           queryParams.append('orderBy', params.orderBy); // Passa l'orderBy senza encodeURIComponent
         }
-        if (params.name) queryParams.append('like.name', params.name);
-        if (params.description) queryParams.append('like.description', params.description);
-        if (params.province) queryParams.append('obj.province', params.province);
-        if (params.city) queryParams.append('obj.city', params.city);
-        if (params.center_uuid) queryParams.append('obj.center_uuid', params.center_uuid)
+        if (params?.name) queryParams.append('like.name', params.name);
+        if (params?.description) queryParams.append('like.description', params.description);
+        if (params?.province) queryParams.append('obj.province', params.province);
+        if (params?.city) queryParams.append('obj.city', params.city);
+        if (params?.center_uuid) queryParams.append('obj.center_uuid', params.center_uuid)
         queryParams.append('startRow', '0');
         queryParams.append('pageSize', '10');
         queryString += `?${queryParams.toString()}`;
