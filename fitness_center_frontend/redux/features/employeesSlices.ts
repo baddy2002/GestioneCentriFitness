@@ -13,7 +13,7 @@ interface Employee {
   type: string;
   hiring_date: string;
   end_contract_date: string | null;
-  attachments_uuid: string;
+  attachments_uuid: string | null;
   center_uuid: string;
   is_active: boolean;
 }

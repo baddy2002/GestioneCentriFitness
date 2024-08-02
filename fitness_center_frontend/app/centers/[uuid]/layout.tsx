@@ -19,13 +19,6 @@ type BaseFilters = {
   orderBy: string;
 };
 
-interface CenterFilters extends BaseFilters {
-  name: string;
-  description: string;
-  province: string;
-  city: string;
-  open: boolean;
-}
 
 interface EmployeeFilters extends BaseFilters {
   first_name: string;
@@ -37,22 +30,16 @@ interface EmployeeFilters extends BaseFilters {
 interface ExitFilters extends BaseFilters {
   type: string;
   amount: string;
+  description: string
   expiration_date: string;
   open: boolean;
 }
 
-type Filters = CenterFilters | EmployeeFilters | ExitFilters;
+type Filters = EmployeeFilters | ExitFilters;
 
 type FilterField = { label: string; name: string; placeholder: string };
 
-const filtersFields: Record<'centers' | 'employees' | 'exits', FilterField[]> = {
-  centers: [
-    { label: 'Order By', name: 'orderBy', placeholder: 'e.g., name,-province' },
-    { label: 'Name', name: 'name', placeholder: 'Name' },
-    { label: 'Description', name: 'description', placeholder: 'Description' },
-    { label: 'Province', name: 'province', placeholder: 'Province' },
-    { label: 'City', name: 'city', placeholder: 'City' },
-  ],
+const filtersFields: Record<'employees' | 'exits', FilterField[]> = {
   employees: [
     { label: 'Order By', name: 'orderBy', placeholder: 'e.g., last_name,-first_name' },
     { label: 'First Name', name: 'first_name', placeholder: 'First Name' },
@@ -76,6 +63,7 @@ export default function CenterDetailLayout({ children }: { children: React.React
   const { data: centersData } = useFetchCentersQuery();
   const user = useAppSelector(state => state.auth?.user);
   const managerId = user?.id || '';
+  
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
     /*<=================================REDIRECTING==============================>*/ 
@@ -102,13 +90,10 @@ export default function CenterDetailLayout({ children }: { children: React.React
     }
    /*<=================================END REDIRECTING==============================>*/ 
 
-  const [entity, setEntity] = useState<'centers' | 'employees' | 'exits'>('centers');
-  const [filters, setFilters] = useState<CenterFilters | EmployeeFilters | ExitFilters>({
+  const [entity, setEntity] = useState<'employees' | 'exits'>('employees');
+  const [filters, setFilters] = useState<EmployeeFilters | ExitFilters>({
     orderBy: '',
-    name: '',
     description: '',
-    province: '',
-    city: '',
     open: false,
     first_name: '',
     last_name: '',
@@ -117,28 +102,19 @@ export default function CenterDetailLayout({ children }: { children: React.React
     expiration_date: ''
   });
 
-  const [appliedFilters, setAppliedFilters] = useState<CenterFilters | EmployeeFilters | ExitFilters>(filters);
-  const [isMyList, setIsMyList] = useState<boolean>(false);
+  const [appliedFilters, setAppliedFilters] = useState<EmployeeFilters | ExitFilters>(filters);
+  const center = centersData?.centers.find(c => c.uuid === uuid);
 
   const getParams = () => {
     const commonParams = {
       orderBy: appliedFilters.orderBy
     };
-
+    
     switch (entity) {
-      case 'centers':
-        return {
-          ...commonParams,
-          name: (appliedFilters as CenterFilters).name,
-          description: (appliedFilters as CenterFilters).description,
-          province: (appliedFilters as CenterFilters).province,
-          city: (appliedFilters as CenterFilters).city,
-          ...(isMyList && { managerId })
-        };
       case 'employees':
         return {
           ...commonParams,
-          managerId,
+          center_uuid: uuid,
           first_name: (appliedFilters as EmployeeFilters).first_name,
           last_name: (appliedFilters as EmployeeFilters).last_name,
           type: (appliedFilters as EmployeeFilters).type
@@ -146,7 +122,7 @@ export default function CenterDetailLayout({ children }: { children: React.React
       case 'exits':
         return {
           ...commonParams,
-          managerId,
+          center_uuid: uuid,
           type: (appliedFilters as ExitFilters).type,
           amount: (appliedFilters as ExitFilters).amount,
           expiration_date: (appliedFilters as ExitFilters).expiration_date
@@ -156,9 +132,10 @@ export default function CenterDetailLayout({ children }: { children: React.React
     }
   };
 
+  
   const { refetch, isLoading, error, data } = useFetchEntities(entity, getParams());
 
-  const handleFilterChange = useCallback((newFilters: Partial<CenterFilters | EmployeeFilters | ExitFilters>) => {
+  const handleFilterChange = useCallback((newFilters: Partial<EmployeeFilters | ExitFilters>) => {
     setFilters(prevFilters => ({ ...prevFilters, ...newFilters }));
   }, []);
 
@@ -167,9 +144,6 @@ export default function CenterDetailLayout({ children }: { children: React.React
 
     // Resettare i dati esistenti prima di effettuare una nuova richiesta
     switch (entity) {
-      case 'centers':
-        dispatch(clearCentersData());
-        break;
       case 'employees':
         dispatch(clearEmployeesData());
         break;
@@ -182,11 +156,6 @@ export default function CenterDetailLayout({ children }: { children: React.React
       const result = await refetch(); // Usa il refetch con i parametri definiti in getParams
       if (result && result.data) {
         switch (entity) {
-          case 'centers':
-            if ('centers' in result.data) {
-              dispatch(setCentersData(result.data.centers));
-            }
-            break;
           case 'employees':
             if ('employees' in result.data) {
               dispatch(setEmployeesData(result.data.employees));
@@ -206,7 +175,7 @@ export default function CenterDetailLayout({ children }: { children: React.React
     }
   }, [filters, refetch, dispatch, router, entity]);
 
-  const center = centersData?.centers.find(c => c.uuid === uuid);
+  
 
   const menuItems: MenuItem[] = [
     { text: 'Back to Centers', href: `/centers`, requiredRole: [] }

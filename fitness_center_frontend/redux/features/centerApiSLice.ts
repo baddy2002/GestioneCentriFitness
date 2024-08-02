@@ -44,10 +44,10 @@ export interface Employee {
 interface FetchEmployeesParams {
   managerId?: string;
   orderBy?: string; 
-  name?: string;
-  description?: string;
-  province?: string;
-  city?: string;
+  first_name?: string;
+  last_name?: string;
+  type?: string;
+  center_uuid?: string;
 }
 
 export interface Exit {
@@ -70,6 +70,7 @@ interface FetchExitsParams {
   description?: string;
   province?: string;
   city?: string;
+  center_uuid?: string;
 }
 
 
@@ -118,26 +119,27 @@ const centersApiSlice = centerApiSlice.injectEndpoints({
     fetchCentersWithEmployeeUuid: builder.query<FetchCentersResponse, string>({
       query: (employeeUuid) => `/centers/?obj.employee_uuid=${employeeUuid}`,
     }),
-    fetchEmployeesWithManagerId: builder.query<FetchEmployeesResponse, FetchEmployeesParams>({
+    fetchEmployees: builder.query<FetchEmployeesResponse, FetchEmployeesParams>({
       query: (params) => {
         let queryString = '/employees/';
         const queryParams = new URLSearchParams();
         if (params.managerId) queryParams.append('obj.manager_id', params.managerId);
         if (params.orderBy) {
-          console.log(`fetchCentersWithManagerId - orderBy: ${params.orderBy}`); // Log di debug
+          
           queryParams.append('orderBy', params.orderBy); // Passa l'orderBy senza encodeURIComponent
         }
-        if (params.name) queryParams.append('like.name', params.name);
-        if (params.description) queryParams.append('like.description', params.description);
-        if (params.province) queryParams.append('obj.province', params.province);
-        if (params.city) queryParams.append('obj.city', params.city);
+        if (params.first_name) queryParams.append('like.name', params.first_name);
+        if (params.last_name) queryParams.append('like.description', params.last_name);
+        if (params.type) queryParams.append('obj.province', params.type);
+        if (params.center_uuid) queryParams.append('obj.center_uuid', params.center_uuid)
+       
         queryParams.append('startRow', '0');
         queryParams.append('pageSize', '10');
         queryString += `?${queryParams.toString()}`;
         return queryString;
       },
     }),
-    fetchExitsWithManagerId: builder.query<FetchExitsResponse, FetchExitsParams>({
+    fetchExits: builder.query<FetchExitsResponse, FetchExitsParams>({
       query: (params) => {
         let queryString = '/exits/';
         const queryParams = new URLSearchParams();
@@ -150,6 +152,7 @@ const centersApiSlice = centerApiSlice.injectEndpoints({
         if (params.description) queryParams.append('like.description', params.description);
         if (params.province) queryParams.append('obj.province', params.province);
         if (params.city) queryParams.append('obj.city', params.city);
+        if (params.center_uuid) queryParams.append('obj.center_uuid', params.center_uuid)
         queryParams.append('startRow', '0');
         queryParams.append('pageSize', '10');
         queryString += `?${queryParams.toString()}`;
@@ -187,8 +190,8 @@ export const {
   useAddCenterMutation,
   useAddEmployeeMutation,
   useAddExitMutation,
-  useFetchEmployeesWithManagerIdQuery,
-  useFetchExitsWithManagerIdQuery,
+  useFetchEmployeesQuery,
+  useFetchExitsQuery,
 } = centersApiSlice;
 
 export interface FetchCentersResponse {
