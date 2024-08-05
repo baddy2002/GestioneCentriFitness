@@ -1,0 +1,4 @@
+Found 40 test(s).
+System check identified no issues (0 silenced).
+Dio porco vediamo se è lo stesso id:ff29aaf8-3566-42f1-a187-6d22ec8e4c2d
+dio maiale la risposta: {'error': "An unexpected error occurred: Error calculating the available moments, response1: {'error': 'unespected error: No Prenotation matches the given query.'} \n response2: {'error': 'unespected error: No Prenotation matches the given query.'}"}

@@ -692,6 +692,8 @@ class CenterAPITestCase(AuthenticatedAPITestCase):
             "description": "John",
             "name": "test_2",
             "manager_id": "test_2",
+            'hour_nutritionist_price': 20,
+            'hour_trainer_price': 30,
             "province": "MO",
             "city": "Nonantola",
             "street": "Via Saba Umberto",
@@ -714,6 +716,8 @@ class CenterAPITestCase(AuthenticatedAPITestCase):
             "name": "test_2",
             "manager_id": "test_2",
             "province": "MO",
+            'hour_nutritionist_price': 20,
+            'hour_trainer_price': 30,
             "city": "Nonantola",
             "street": "Via Saba Umberto",
             "house_number": 26
@@ -1036,7 +1040,7 @@ class PrenotationAPITestCase(AuthenticatedAPITestCase):
             self.assertEqual(Prenotation.objects.get(pk=response.json().get('uuid')).status, "confirmed")
         
         return response
-    
+
     def test_delete_prenotation(self):                         #controlla che un utente con id corretto venga disattiva, controlla che gli errori siano consoni
 
         response = self.test_post_valid_prenotation()         #crea un utente(con test case non è assicurato l'ordine dei test)
@@ -1051,9 +1055,9 @@ class PrenotationAPITestCase(AuthenticatedAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertIn('detail', response.json())
         self.assertEqual(response.json().get('detail'), "No Prenotation matches the given query.")
-
         delete_url=self.url+uuid
         response = AuthenticatedAPITestCase.client.delete(delete_url)
+        print("dio maiale la risposta: "+str(response.json()))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         response_data = response.json()
         self.assertIn('prenotation', response_data)
@@ -1074,7 +1078,7 @@ class AvailabilityAPITestCase(AuthenticatedAPITestCase):
 
     def test_correct_availability_center(self):
 
-        url = reverse('availability-views', args=('trainer', str(datetime.datetime.now().date()+datetime.timedelta(days=1)) ,str(Center.objects.first().uuid), ))
+        url = reverse('availability-views', args=('trainer', str(datetime.datetime.now().date()+datetime.timedelta(days=1)) , float(0.5),str(Center.objects.first().uuid), ))
     
         response = AuthenticatedAPITestCase.client.get(url, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)

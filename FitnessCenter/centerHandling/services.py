@@ -109,10 +109,10 @@ class PrenotationService:
 
     @classmethod
     def find_next_available_moments(cls, prenotation):
-
-        response1 = requests.get(f'{settings.BACKEND_SERVICE_PROTOCOL}://{settings.BACKEND_SERVICE_DOMAIN}:{settings.BACKEND_SERVICE_PORT}/api/availability/{prenotation.type}/{prenotation.from_hour.date()}/{prenotation.center_uuid}?prenotation_uuid={prenotation.uuid}')
-        response2 = requests.get(f'{settings.BACKEND_SERVICE_PROTOCOL}://{settings.BACKEND_SERVICE_DOMAIN}:{settings.BACKEND_SERVICE_PORT}/api/availability/{prenotation.type}/{prenotation.from_hour.date()}/{prenotation.center_uuid}/{prenotation.employee_uuid}?prenotation_uuid={prenotation.uuid}')
-        if response1 and response1.json() and response2 and response2.json(): 
+        duration = (prenotation.to_hour - prenotation.from_hour).total_seconds() / 3600
+        response1 = requests.get(f'{settings.BACKEND_SERVICE_PROTOCOL}://{settings.BACKEND_SERVICE_DOMAIN}:{settings.BACKEND_SERVICE_PORT}/api/availability/{prenotation.type}/{prenotation.from_hour.date()}/{duration}/{prenotation.center_uuid}?prenotation_uuid={prenotation.uuid}')
+        response2 = requests.get(f'{settings.BACKEND_SERVICE_PROTOCOL}://{settings.BACKEND_SERVICE_DOMAIN}:{settings.BACKEND_SERVICE_PORT}/api/availability/{prenotation.type}/{prenotation.from_hour.date()}/{duration}/{prenotation.center_uuid}/{prenotation.employee_uuid}?prenotation_uuid={prenotation.uuid}')
+        if response1.status_code == 200 and response2.status_code == 200: 
             center_availability = response1.json().get('availability')
             employee_availability = response2.json().get('availability')
             if center_availability and len(center_availability) > 0:
@@ -120,6 +120,6 @@ class PrenotationService:
             if employee_availability and len(employee_availability) > 0:
                 employee_availability = employee_availability[0:5]
         else:
-            raise Exception(f"Error calculating the available moments, response1: {response1} \n response2: {response2}")
+            raise Exception(f"Error calculating the available moments, response1: {response1.json()} \n response2: {response2.json()}")
         
         return {"center_availability": center_availability, "employee_availability": employee_availability}

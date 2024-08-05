@@ -1,10 +1,10 @@
 // pages/index.tsx
 'use client';
-import CenterForm from '@/components/forms/CenterForm';
+import PrenotationForm from '@/components/forms/PrenotationForm'
 
 const Home: React.FC = () => {
   return (
-      <CenterForm />
+      <PrenotationForm />
   );
 };
 

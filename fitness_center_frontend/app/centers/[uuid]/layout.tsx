@@ -239,6 +239,11 @@ export default function CenterDetailLayout({ children }: { children: React.React
         }
       },
       requiredRole: ['admin', 'manager']
+    },
+    { text: 'Prenotations', action: async () => {
+      router.push('/prenotations');
+      },
+      requiredRole: ['all']
     }
    
   ];

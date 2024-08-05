@@ -228,6 +228,7 @@ class PrenotationSerializer(serializers.ModelSerializer):
             if employee.type != data.get('type'):
                 raise ValidationError('Employee type does not match the prenotation type.')
 
+
         # 2. Validate center
         center_uuid = data.get('center_uuid')
         if center_uuid:
@@ -272,6 +273,8 @@ class PrenotationSerializer(serializers.ModelSerializer):
                 data['employee_uuid'] =available_employee_uuid
             else:
                 raise ValidationError('No available employees for the center.')
+        if data['type'] == 'nutritionist':
+            data['to_hour'] = data['from_hour'] + datetime.timedelta(minutes=30)
         data['total'] = self.calculate_total_price(data['type'], data['from_hour'], data['to_hour'], center_uuid)
         data['user_email'] = get_token_email(request)
         data['status'] = 'pending'

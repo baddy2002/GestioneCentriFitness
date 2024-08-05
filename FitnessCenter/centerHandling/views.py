@@ -567,7 +567,7 @@ class PrenotationView(APIView):
         if serializer.is_valid():
             totalCredit=0.00
             customerCredits = CustomerCredit.objects.filter(user_id=get_principal(request)).all()
-            totalCredit += sum(customerCredit.credit for customerCredit in customerCredits)
+            totalCredit += sum(float(customerCredit.credit) for customerCredit in customerCredits)
             prenotation = serializer.save()
             if float(serializer.data['total']) > float(totalCredit):
                 PaymentsUtils.pay(get_principal(request), float(serializer.data['total']) - float(totalCredit))
@@ -645,6 +645,7 @@ class PrenotationView(APIView):
             if get_principal(request=request) == prenotation.user_id:           # non è stato l'utente a richiederlo
                 executor='employee'
                 new_employee_uuid = PrenotationService.replaceEmployee(prenotation)
+                print('Dio porco vediamo se è lo stesso id:' + str(prenotation.uuid))
                 availability_moments = PrenotationService.find_next_available_moments(prenotation)
                 
             prenotation.status='to cancel'
@@ -761,53 +762,61 @@ class PrenotationView(APIView):
         return prenotation
 
 class AvailabilityView(APIView):
-    def get(self, request, type, date, center_uuid, employee_uuid=None):
-        prenotation_uuid = request.GET.get('prenotation_uuid', None)
-        if prenotation_uuid is None:
-            available_slots = DateUtils.generate_slots(datetime.time(8, 0), datetime.time(18, 0), None, 30)
-        else:
-            prenotation = get_object_or_404(Prenotation, uuid=prenotation_uuid)
-            duration = (prenotation.to_hour - prenotation.from_hour).total_seconds() / 60
-            available_slots = DateUtils.generate_slots(datetime.time(8, 0), datetime.time(18, 0), None, duration)
-        min_date = timezone.now().date() + datetime.timedelta(days=1)
-        date = DateUtils.parse_string_to_date(date)
-        date = min_date if min_date > date else date
-        
-
-        after_date = date + datetime.timedelta(days=1)
-        
-        prenotations = Prenotation.objects.filter(
-            center_uuid=center_uuid,
-            from_hour__gt = date,
-            from_hour__lt = after_date
-        )
-        # Get employees of the center
-        if(employee_uuid is None):
-            employees = Employee.objects.filter(center_uuid=center_uuid, is_active=True, type=type)     #trovo dipendenti del centro con stesso tipo
-            employees_uuids = [str(uuid) for uuid in employees.values_list('uuid', flat=True)]
-            prenotations = prenotations.filter(employee_uuid__in=employees_uuids)
+    def get(self, request, type, date, duration, center_uuid, employee_uuid=None):
+        try:
+            prenotation_uuid = request.GET.get('prenotation_uuid', None)
+            duration = float(duration)*60
+            if prenotation_uuid is None:
+                # TODO: lunghezza fissa per nutritionist
+                available_slots = DateUtils.generate_slots(datetime.time(8, 0), datetime.time(18, 0), None, duration)
+            else:
+                print("dio porco l'uuid:"+str(prenotation_uuid))
+                test_prenotation = Prenotation.objects.filter(uuid=prenotation_uuid).first()
+                if test_prenotation is not None:
+                    print("manchessenso")
+                prenotation = get_object_or_404(Prenotation, uuid=prenotation_uuid)
+                duration = (prenotation.to_hour - prenotation.from_hour).total_seconds() / 60               #sovrascrivo un'eventuale duration passata in modo errato
+                available_slots = DateUtils.generate_slots(datetime.time(8, 0), datetime.time(18, 0), None, duration)
+            min_date = timezone.now().date() + datetime.timedelta(days=1)
+            date = DateUtils.parse_string_to_date(date)
+            date = min_date if min_date > date else date
             
-        else:
-            employee =get_object_or_404(Employee, uuid=employee_uuid)
-            prenotations = prenotations.filter(employee_uuid=str(employee.uuid))
 
-        busy_hours_map = {
-            prenotation.from_hour: prenotation.to_hour
-            for prenotation in prenotations
-        }
-        UTC_timezone = pytz.UTC
-        available = []
-        for start, end in available_slots:                          #per ogni fascia
-            is_available = True
-            start_datetime = UTC_timezone.localize(datetime.datetime.combine(date, start))
-            end_datetime = UTC_timezone.localize(datetime.datetime.combine(date, end))
-            for busy_start, busy_end in busy_hours_map.items():     #per ogni fascia occupata
-                if (end_datetime<=busy_end and start_datetime>=busy_start):    
-                    is_available = False                            
-                    break
-            if is_available:
-                available.append((start, end))
+            after_date = date + datetime.timedelta(days=1)
+            
+            prenotations = Prenotation.objects.filter(
+                center_uuid=center_uuid,
+                from_hour__gt = date,
+                from_hour__lt = after_date
+            )
+            # Get employees of the center
+            if(employee_uuid is None):
+                employees = Employee.objects.filter(center_uuid=center_uuid, is_active=True, type=type)     #trovo dipendenti del centro con stesso tipo
+                employees_uuids = [str(uuid) for uuid in employees.values_list('uuid', flat=True)]
+                prenotations = prenotations.filter(employee_uuid__in=employees_uuids)
+                
+            else:
+                employee =get_object_or_404(Employee, uuid=employee_uuid)
+                prenotations = prenotations.filter(employee_uuid=str(employee.uuid))
 
-        return JsonResponse({"availability": available}, status=200)
-    
+            busy_hours_map = {
+                prenotation.from_hour: prenotation.to_hour
+                for prenotation in prenotations
+            }
+            UTC_timezone = pytz.UTC
+            available = []
+            for start, end in available_slots:                          #per ogni fascia
+                is_available = True
+                start_datetime = UTC_timezone.localize(datetime.datetime.combine(date, start))
+                end_datetime = UTC_timezone.localize(datetime.datetime.combine(date, end))
+                for busy_start, busy_end in busy_hours_map.items():     #per ogni fascia occupata
+                    if (end_datetime<=busy_end and start_datetime>=busy_start):    
+                        is_available = False                            
+                        break
+                if is_available:
+                    available.append((start, end))
+
+            return JsonResponse({"availability": available}, status=200)
+        except Exception as e: 
+            return JsonResponse({"error": "unespected error: " +str(e)}, status=500)
 

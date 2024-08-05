@@ -21,7 +21,7 @@ const Page: React.FC = () => {
       {data.length > 0 ? (
         <ul>
           {data.map(item => {
-            let linkHref=`/centers/${item.center_uuid}/employees/${item.uuid}`
+            let linkHref=`/centers/${item.center_uuid}/employee/${item.uuid}`
 
             return (
               <li key={item.uuid} className="border-b border-gray-400 pb-4 mb-4 flex justify-between items-center">

@@ -1,4 +1,4 @@
-// app/centers/[uuid]/page.tsx
+// app/exits/[uuid]/page.tsx
 'use client';
 
 import React from 'react';
@@ -10,7 +10,7 @@ import { useState, useEffect } from 'react';
 import { useUserGroupsQuery } from '@/redux/features/authApiSlice';
 
 
-const CenterDetails: React.FC = () => {
+const ExitDetails: React.FC = () => {
   const { id } = useParams();
   const { data: exitsData } = useFetchExitsQuery();
   const [userRoles, setUserRoles] = useState<UserRole[]>(['customer']);
@@ -22,24 +22,24 @@ const CenterDetails: React.FC = () => {
     }
   }, [group]);
 
-  const exit = exitsData?.centers.find(c => c.uuid === uuid);
+  const exit = exitsData?.exits.find(e => e.uuid === id);
 
-  if (!center) {
+  if (!exit) {
     return <p className="p-4 text-red-500">Centro non trovato</p>;
   }
 
   return (
     <div className="p-4 bg-white shadow-lg rounded-lg max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">{center.name}</h1>
-      <Field label="Descrizione" value={center.description} roles={userRoles} allowedRoles={['admin', 'manager']} />
-      <Field label="Manager ID" value={center.manager_id} roles={userRoles} allowedRoles={['admin']} />
-      <Field label="Provincia" value={center.province} roles={userRoles} allowedRoles={['all']} />
-      <Field label="Città" value={center.city} roles={userRoles} allowedRoles={['all']} />
-      <Field label="Via" value={center.street} roles={userRoles} allowedRoles={['all']} />
-      <Field label="Numero Civico" value={center.house_number} roles={userRoles} allowedRoles={['all']} />
-      <Field label="Attivo" value={center.is_active} roles={userRoles} allowedRoles={['admin']} />
+      <h1 className="text-3xl font-bold mb-6 text-gray-800">{exit.amount}</h1>
+      <Field label="Description" value={exit.description} roles={userRoles} allowedRoles={['admin', 'manager']} />
+      <Field label="Type" value={exit.type} roles={userRoles} allowedRoles={['admin', 'manager']} />
+      <Field label="Start date" value={exit.start_date} roles={userRoles} allowedRoles={['admin', 'manager']} />
+      {exit.expiration_date != null ? <Field label="Expiration date" value={exit.expiration_date} roles={userRoles} allowedRoles={['admin', 'manager']} /> : ('')}
+      <Field label="Frequency" value={exit.frequency} roles={userRoles} allowedRoles={['all']} />
+      <Field label="Start date" value={exit.start_date} roles={userRoles} allowedRoles={['all']} />
+
     </div>
   );
 };
 
-export default CenterDetails;
+export default ExitDetails;
