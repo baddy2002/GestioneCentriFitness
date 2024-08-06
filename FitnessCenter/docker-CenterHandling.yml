@@ -10,7 +10,7 @@ services:
     ports:
       - '5959:5432'
     networks:
-      - microservice-network
+      - fitnesscenter
 
   pgadmin4:
     image: dpage/pgadmin4
@@ -25,7 +25,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: centerhandling@centerhandling.it
       PGADMIN_DEFAULT_PASSWORD: centerhandling
     networks:
-      - microservice-network
+      - fitnesscenter
 
 
   zookeeper:
@@ -36,7 +36,7 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     networks:
-      - microservice-network
+      - fitnesscenter
 
 
   kafka:
@@ -53,7 +53,7 @@ services:
     depends_on:
       - zookeeper
     networks:
-      - microservice-network
+      - fitnesscenter
 
   center-handling:
     build: .
@@ -70,6 +70,7 @@ services:
       - postgresql
       - kafka
     networks:
+      - fitnesscenter
       - microservice-network
     
   center-handling-email-consumer:
@@ -83,7 +84,7 @@ services:
       - center-handling
       - kafka
     networks:
-      - microservice-network
+      - fitnesscenter
 
   center-handling-consumer:
     build: .
@@ -96,7 +97,10 @@ services:
       - center-handling
       - kafka
     networks:
-      - microservice-network
+      - fitnesscenter
+
 networks:
+  fitnesscenter:
+    external: false
   microservice-network:
-    driver: bridge
+    external: true

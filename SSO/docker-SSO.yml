@@ -10,8 +10,8 @@ services:
     ports:
       - '5858:5432'
     networks:
-      - microservice-network
-      
+      - sso
+
   pgadmin4:
     image: dpage/pgadmin4
     ports:
@@ -25,7 +25,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: prova@prova.it
       PGADMIN_DEFAULT_PASSWORD: prova
     networks:
-      - microservice-network
+      - sso
 
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
@@ -35,7 +35,7 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     networks:
-      - microservice-network
+      - sso
 
   kafka:
     image: confluentinc/cp-kafka:latest
@@ -51,7 +51,7 @@ services:
     depends_on:
       - zookeeper
     networks:
-      - microservice-network
+      - sso
 
   sso:
     build: .
@@ -68,6 +68,7 @@ services:
       - postgresql
       - kafka
     networks:
+      - sso
       - microservice-network
 
   sso-initdb:
@@ -80,7 +81,7 @@ services:
     depends_on:
       - sso
     networks:
-      - microservice-network
+      - sso
       
   sso-consumer:
     build: .
@@ -93,8 +94,10 @@ services:
       - sso
       - kafka
     networks:
-      - microservice-network
+      - sso
 
 networks:
+  sso:
+    external: false
   microservice-network:
-    driver: bridge
+    external: true
