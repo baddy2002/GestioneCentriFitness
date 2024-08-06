@@ -1,0 +1,11 @@
+# Usa l'immagine Kafka base
+FROM confluentinc/cp-kafka:latest
+
+# Copia lo script di inizializzazione
+COPY init-kafka.sh /usr/local/bin/init-kafka.sh
+
+# Imposta i permessi per eseguire lo script
+RUN chmod +x /usr/local/bin/init-kafka.sh
+
+# Esegui lo script di inizializzazione
+CMD ["sh", "-c", "/usr/local/bin/init-kafka.sh && kafka-server-start.sh /etc/kafka/server.properties"]

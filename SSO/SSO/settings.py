@@ -85,8 +85,8 @@ if DEVELOPMENT_MODE is True:
             'NAME': 'GestioneCentriFitness_Users',
             'USER': 'postgres',
             'PASSWORD': 'password123',
-            'HOST': 'localhost',
-            'PORT': '5858'
+            'HOST': 'sso-postgresql-1',
+            'PORT': '5432'
         }
     }
 elif len(sys.argv) > 0 and sys.argv[1] != 'collectstatic':
@@ -259,8 +259,8 @@ GS_BUCKET_NAME = 'GestioneCentriFitness'
 DEFAULT_FILE_STORAGE = 'users.backends.GoogleDriveStorage'
 
 
-KAFKA_BOOTSTRAP_SERVERS_READERS = [getenv('KAFKA_BOOTSTRAP_SERVERS_READERS','localhost:9092')]
+KAFKA_BOOTSTRAP_SERVERS_READERS = [getenv('KAFKA_BOOTSTRAP_SERVERS_READERS','sso-kafka-1:9092')]
 KAFKA_TOPIC_READERS = getenv('KAFKA_TOPIC_READERS','employee-invitation')
 
-KAFKA_BOOTSTRAP_SERVERS_WRITERS = [getenv('KAFKA_BOOTSTRAP_SERVERS_WRITERS','localhost:9092')]
+KAFKA_BOOTSTRAP_SERVERS_WRITERS = [getenv('KAFKA_BOOTSTRAP_SERVERS_WRITERS','sso-kafka-1:9092')]
 KAFKA_TOPIC_WRITERS = getenv('KAFKA_TOPIC_WRITERS','invitation-status')

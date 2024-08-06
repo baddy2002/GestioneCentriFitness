@@ -289,7 +289,7 @@ class InformationView(APIView):
 class ManagerViewRegistration(APIView):
     permission_classes = [AllowAny]
     def post(self, request, *args, **kwargs):
-        print("post: " + str(request.data))
+
         if request.data is not None and request.data.get('p_iva') is not None:
             p_iva = request.data.get('p_iva')
             if not validate_partita_iva(p_iva):
@@ -301,6 +301,19 @@ class ManagerViewRegistration(APIView):
                     return JsonResponse(json.loads(res.content), status=res.status_code)
                 user_data = res.json()
                 user = get_object_or_404(UserAccount, pk=user_data['id'])
+            else: 
+                password = request.data.get('password')
+                re_password = request.data.get('re_password')
+
+                if request.data.get('first_name') is None or request.data.get('first_name') != user.first_name:
+                     return JsonResponse({"Error": "User first_name is not correct"}, status=status.HTTP_400_BAD_REQUEST)
+                if password != re_password:
+                    return JsonResponse({"Error": "Password and re_password do not match"}, status=status.HTTP_400_BAD_REQUEST)
+                
+                if not user.check_password(password):
+                    return JsonResponse({"Error": "User with this email exists but the password is not correct"}, status=status.HTTP_400_BAD_REQUEST)
+
+
 
             user.p_iva = p_iva
             user.save()
