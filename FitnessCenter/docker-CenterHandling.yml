@@ -1,6 +1,6 @@
-version: "3.8"
+version: "3"
 
-services:
+services: 
   postgresql:
     image: postgres:latest
     environment:
@@ -9,17 +9,24 @@ services:
       POSTGRES_DB: GestioneCentriFitness_CenterHandling
     ports:
       - '5959:5432'
-  
+    networks:
+      - microservice-network
+
   pgadmin4:
     image: dpage/pgadmin4
     ports:
       - '5061:5050'
       - '97:80'
+    links:
+      - postgresql:postgresql
     depends_on:
       - postgresql
     environment:
       PGADMIN_DEFAULT_EMAIL: centerhandling@centerhandling.it
       PGADMIN_DEFAULT_PASSWORD: centerhandling
+    networks:
+      - microservice-network
+
 
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
@@ -28,6 +35,9 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - microservice-network
+
 
   kafka:
     image: confluentinc/cp-kafka:latest
@@ -42,33 +52,40 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     depends_on:
       - zookeeper
+    networks:
+      - microservice-network
 
-  django:
+  center-handling:
     build: .
     command: >
       sh -c "
       python manage.py makemigrations &&
       python manage.py migrate &&
-      python manage.py runserver 0.0.0.0:8000"
+      python manage.py runserver 0.0.0.0:8001"
     volumes:
       - .:/app
     ports:
-      - "8001:8000"
+      - "8001:8001"
     depends_on:
       - postgresql
       - kafka
-
-  django-initdb:
+    networks:
+      - microservice-network
+    
+  center-handling-email-consumer:
     build: .
     command: >
       sh -c "
-      sleep 10 && python manage.py initdb"
+      sleep 10 && python manage.py runEmailConsumer"
     volumes:
       - .:/app
     depends_on:
-      - django
+      - center-handling
+      - kafka
+    networks:
+      - microservice-network
 
-  django-consumer:
+  center-handling-consumer:
     build: .
     command: >
       sh -c "
@@ -76,16 +93,10 @@ services:
     volumes:
       - .:/app
     depends_on:
-      - django
+      - center-handling
       - kafka
-
-  django-email-consumer:
-    build: .
-    command: >
-      sh -c "
-      sleep 15 && python manage.py runEmailConsumer"
-    volumes:
-      - .:/app
-    depends_on:
-      - django
-      - kafka
+    networks:
+      - microservice-network
+networks:
+  microservice-network:
+    driver: bridge

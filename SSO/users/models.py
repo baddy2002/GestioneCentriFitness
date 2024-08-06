@@ -94,7 +94,7 @@ class Invito(models.Model):
         if self.pk is not None:                                     # L'invito esiste già
             old_invito = Invito.objects.filter(pk=self.pk).first()
             if old_invito and old_invito.status != self.status:                    # Lo stato è cambiato
-                producer = KafkaProducerService(bootstrap_servers='localhost:9092')
+                producer = KafkaProducerService(bootstrap_servers='sso-kafka-1:9092')
                 data = {
                     'employee_uuid': self.employee_uuid,
                     'status': self.status

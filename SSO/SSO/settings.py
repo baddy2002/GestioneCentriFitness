@@ -23,7 +23,7 @@ SECRET_KEY = getenv("DJANGO_SECRET_KEY", get_random_secret_key())
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = getenv("DEBUG", 'False') == 'True'
 
-ALLOWED_HOSTS = getenv("DJANGO_ALLOWED_HOST", "127.0.0.1,localhost").split(",")
+ALLOWED_HOSTS = getenv("DJANGO_ALLOWED_HOST", "127.0.0.1,localhost,sso-sso-1").split(",")
 
 
 # Application definition
@@ -230,7 +230,7 @@ else:
     BACKEND_SERVICE_PROTOCOL=getenv('BACKEND_SERVICE_PROTOCOL', 'http')
     BACKEND_SERVICE_DOMAIN=getenv('BACKEND_SERVICE_DOMAIN','127.0.0.1')
     BACKEND_SERVICE_PORT=getenv('BACKEND_SERVICE_PORT', 8000)
-CORS_ALLOWED_ORIGINS = getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000,http://127.0.0.1:8001,http://localhost:8001').split(',')
+CORS_ALLOWED_ORIGINS = getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000,http://127.0.0.1:8001,http://fitnesscenter-center-handling-1:8001,http://localhost:8001').split(',')
 CORS_ALLOW_CREDENTIALS = True
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field

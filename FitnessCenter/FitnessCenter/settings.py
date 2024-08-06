@@ -20,7 +20,7 @@ SECRET_KEY = getenv("DJANGO_SECRET_KEY", get_random_secret_key())               
 
 DEBUG = getenv("DEBUG", 'False') == 'True'                                          #debug mode(for errors)
 
-ALLOWED_HOSTS = getenv("DJANGO_ALLOWED_HOST", "127.0.0.1,localhost").split(",")     #allowed host list(in prod will be the address of the fe microservice)
+ALLOWED_HOSTS = getenv("DJANGO_ALLOWED_HOST", "127.0.0.1,localhost,fitnesscenter-center-handling-1").split(",")     #allowed host list(in prod will be the address of the fe microservice)
 
 
 # Application definition
@@ -81,8 +81,8 @@ if DEVELOPMENT_MODE is True:
             'NAME': 'GestioneCentriFitness_CenterHandling',
             'USER': 'postgres',
             'PASSWORD': 'password123',
-            'HOST': 'localhost',
-            'PORT': '5959'
+            'HOST': 'fitnesscenter-postgresql-1',
+            'PORT': '5432'
         }
     }
 elif len(sys.argv) > 0 and sys.argv[1] != 'collectstatic':
@@ -195,14 +195,14 @@ else:
 
 
 
-KAFKA_BOOTSTRAP_SERVERS_READERS = [getenv('KAFKA_BOOTSTRAP_SERVERS_READERS','localhost:9093')]
+KAFKA_BOOTSTRAP_SERVERS_READERS = [getenv('KAFKA_BOOTSTRAP_SERVERS_READERS','fitnesscenter-kafka-1:9092')]
 KAFKA_TOPIC_READERS = getenv('KAFKA_TOPIC_READERS','invitation-status')
 
-KAFKA_BOOTSTRAP_SERVERS_WRITERS = [getenv('KAFKA_BOOTSTRAP_SERVERS_WRITERS','localhost:9092')]
+KAFKA_BOOTSTRAP_SERVERS_WRITERS = [getenv('KAFKA_BOOTSTRAP_SERVERS_WRITERS','fitnesscenter-kafka-1:9092')]
 KAFKA_TOPIC_WRITERS = getenv('KAFKA_TOPIC_WRITERS','employee-invitation')
 
-KAFKA_BOOTSTRAP_SERVERS_EMAIL_READERS = [getenv('KAFKA_BOOTSTRAP_SERVERS_EMAIL_READERS','localhost:9093')]
+KAFKA_BOOTSTRAP_SERVERS_EMAIL_READERS = [getenv('KAFKA_BOOTSTRAP_SERVERS_EMAIL_READERS','fitnesscenter-kafka-1:9092')]
 KAFKA_TOPIC_EMAIL_READERS = getenv('KAFKA_TOPIC_EMAIL_READERS','email-tasks')
 
-KAFKA_BOOTSTRAP_SERVERS_EMAIL_WRITERS = [getenv('KAFKA_BOOTSTRAP_SERVERS_EMAIL_WRITERS','localhost:9093')]
+KAFKA_BOOTSTRAP_SERVERS_EMAIL_WRITERS = [getenv('KAFKA_BOOTSTRAP_SERVERS_EMAIL_WRITERS','fitnesscenter-kafka-1:9092')]
 KAFKA_TOPIC_EMAIL_WRITERS = getenv('KAFKA_TOPIC_EMAIL_WRITERS','email-tasks')

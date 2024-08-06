@@ -9,7 +9,9 @@ services:
       POSTGRES_DB: GestioneCentriFitness_Users
     ports:
       - '5858:5432'
-
+    networks:
+      - microservice-network
+      
   pgadmin4:
     image: dpage/pgadmin4
     ports:
@@ -22,6 +24,8 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: prova@prova.it
       PGADMIN_DEFAULT_PASSWORD: prova
+    networks:
+      - microservice-network
 
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
@@ -30,6 +34,8 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - microservice-network
 
   kafka:
     image: confluentinc/cp-kafka:latest
@@ -44,8 +50,10 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     depends_on:
       - zookeeper
+    networks:
+      - microservice-network
 
-  django:
+  sso:
     build: .
     command: >
       sh -c "
@@ -59,8 +67,10 @@ services:
     depends_on:
       - postgresql
       - kafka
+    networks:
+      - microservice-network
 
-  django-initdb:
+  sso-initdb:
     build: .
     command: >
       sh -c "
@@ -68,9 +78,11 @@ services:
     volumes:
       - .:/app
     depends_on:
-      - django
-
-  django-consumer:
+      - sso
+    networks:
+      - microservice-network
+      
+  sso-consumer:
     build: .
     command: >
       sh -c "
@@ -78,5 +90,11 @@ services:
     volumes:
       - .:/app
     depends_on:
-      - django
+      - sso
       - kafka
+    networks:
+      - microservice-network
+
+networks:
+  microservice-network:
+    driver: bridge

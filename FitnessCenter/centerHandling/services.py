@@ -10,7 +10,7 @@ from django.conf import settings
 
 class EmployeeService:
     def __init__(self):
-        self.kafka_producer = KafkaProducerService(bootstrap_servers='localhost:9092')
+        self.kafka_producer = KafkaProducerService(bootstrap_servers='fitnesscenter-kafka-1:9092')
 
     def send_invitation(self, employee_email, employee_uuid):
         data = {
