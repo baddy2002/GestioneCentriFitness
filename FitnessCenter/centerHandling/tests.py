@@ -33,12 +33,12 @@ class AuthenticatedAPITestCase(APITestCase):
 
     @classmethod
     def authenticate(cls):
-        url = f"{settings.BACKEND_SSO_SERVICE_PROTOCOL}://{settings.BACKEND_SSO_SERVICE_DOMAIN}:{settings.BACKEND_SSO_SERVICE_PORT}/api/jwt/create"
+
         credentials = {
             "email": "andreabenassi02@gmail.com",
             "password": "albicocca"
         }
-        response = requests.post(url, data=json.dumps(credentials), headers={"Content-Type":"application/json"})
+        response = requests.post(f"{settings.BACKEND_SSO_SERVICE_PROTOCOL}://{settings.BACKEND_SSO_SERVICE_DOMAIN}:{settings.BACKEND_SSO_SERVICE_PORT}/api/jwt/create", data=json.dumps(credentials), headers={"Content-Type":"application/json"})
         
         if response.status_code == 200:
             tokens = response.json()

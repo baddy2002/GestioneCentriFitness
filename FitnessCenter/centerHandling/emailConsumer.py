@@ -29,20 +29,24 @@ def parse_time(value):
         return value
 
 def deserialize_datetime(obj):
-    if isinstance(obj, str):
-        if 'T' in obj:  # Simple heuristic to determine datetime vs date vs time
-            try:
-                return parse_datetime(obj)
-            except ValueError:
-                return obj
-        else:
-            try:
-                return parse_date(obj)
-            except ValueError:
-                return obj
-    elif isinstance(obj, float):
-        return Decimal(obj)
-    return obj
+    try:
+        if isinstance(obj, str):
+            if 'T' in obj:  # Simple heuristic to determine datetime vs date vs time
+                try:
+                    return parse_datetime(obj)
+                except ValueError:
+                    return obj
+            else:
+                try:
+                    return parse_date(obj)
+                except ValueError:
+                    return obj
+        elif isinstance(obj, float):
+            return Decimal(obj)
+        return obj
+    except Exception as e: 
+        print("error deserializing message: " +str(e))
+    return None
 class EmailKafkaConsumerService:
     def __init__(self):
         self.consumer = KafkaConsumer(
@@ -51,20 +55,34 @@ class EmailKafkaConsumerService:
             auto_offset_reset='earliest',
             enable_auto_commit=True,
             group_id='email-task-group',
-            value_deserializer=lambda x: json.loads(x.decode('utf-8'), object_hook=deserialize_datetime)
+            value_deserializer=lambda x: self._safe_deserialize(x)
         )
 
+    def _safe_deserialize(self, x):
+        try:
+            return json.loads(x.decode('utf-8'), object_hook=deserialize_datetime)
+        except json.JSONDecodeError as e:
+            print(f"Error deserializing message: {e}")
+            return {"error": "None or invalid message"}  # Or some default value if applicable
     def listen(self):
         for message in self.consumer:
             data = message.value
-            self.process_message(data)
+            print(data)
+            if data['error'] is None:
+                self.process_message(data)
+            else:
+                print("ma come cazzo fa a non arrivarci dio maiale")
 
     def process_message(self, data):
-        email_type = data['type']
-        if email_type == 'customer':
-            self.send_customer_email(**data['data'])
-        elif email_type == 'employee':
-            self.send_employee_email(**data['data'])
+        try:
+            email_type = data['type']
+            if email_type == 'customer':
+                self.send_customer_email(**data['data'])
+            elif email_type == 'employee':
+                self.send_employee_email(**data['data'])
+        except json.JSONDecodeError as e:
+            # Logga l'errore e continua
+            print(f"Error deserializing message: {e}")
 
     def send_customer_email(self, name, prenotation_status, prenotation_total, employee_uuid, executor, availability_moments, new_employee_uuid, recipient_email, prenotation_uuid, server, prenotation_center, prenotation_employee):
         employee = Employee.objects.filter(uuid=uuid.UUID(employee_uuid)).first()
